@@ -1,4 +1,4 @@
-### MagicFeedback SDK
+# MagicFeedback SDK
 
 **A Python SDK for interacting with the MagicFeedback API**
 
