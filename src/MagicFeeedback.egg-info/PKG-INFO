@@ -1,3 +1,17 @@
+Metadata-Version: 2.1
+Name: MagicFeeedback
+Version: 0.0.2
+Summary: SDK for MagicFeedback API
+Author-email: Francisco Arias <farias@magicfedback.io>
+Project-URL: Homepage, https://github.com/MagicFeedback/magicfeedback_python_sdk
+Project-URL: Issues, https://github.com/MagicFeedback/magicfeedback_python_sdk/issues
+Classifier: Programming Language :: Python :: 3
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Requires-Python: >=3.8
+Description-Content-Type: text/markdown
+License-File: LICENCE
+
 ### MagicFeedback SDK
 
 **A Python SDK for interacting with the MagicFeedback API**
