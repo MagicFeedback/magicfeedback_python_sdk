@@ -1,5 +1,7 @@
 import pytest
+
 from src.magicfeedback import MagicFeedbackClient
+
 
 def test_create_feedback(client):
     """Tests creating a new feedback item."""
