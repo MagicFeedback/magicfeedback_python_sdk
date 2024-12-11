@@ -1,8 +1,7 @@
 import json
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 import requests
-from google.auth.transport.requests import Request
 
 
 class MagicFeedbackClient:
@@ -14,6 +13,7 @@ class MagicFeedbackClient:
         self.ip_key = ip_key
 
         self.api_key = self.get_api_key(user, password)
+        print("API Key: ", self.api_key)
         self.headers = {"Authorization": f"Bearer {self.api_key}"}
 
     def get_api_key(self, user, password):
@@ -63,7 +63,7 @@ class MagicFeedbackClient:
         response = requests.request(
             method, url, headers=self.headers, json=json)
         response.raise_for_status()  # Raise exception for non-2xx status codes
-        # TODO: Control the status of the call 
+        # TODO: Control the status of the call
         print("Status code: ", response.status_code)
         print("Response: ", response.json())
 
@@ -96,7 +96,6 @@ class MagicFeedbackClient:
 
         return self._make_request("POST", url, json=feedback)
 
-    # Add other API methods as needed
     def get_feedback(self, feedback_id: str) -> Dict[str, Any]:
         """Retrieves a specific feedback item.
 
@@ -130,3 +129,148 @@ class MagicFeedbackClient:
         """
         url = f"{self.base_url}/feedbacks/{feedback_id}"
         self._make_request("DELETE", url)
+
+    ####################################################################################
+    # Contacts API Methods                                                             #
+    ####################################################################################
+
+    def create_contact(self, contact: Dict[str, Any]) -> Dict[str, Any]:
+        """Creates a new contact item.
+
+        Args:
+            contact (Dict[str, Any]): The contact data to create.
+
+        Returns:
+            Dict[str, Any]: The created contact item.
+        """
+        url = f"{self.base_url}/crm/contacts"
+
+        # Ensure required fields are present
+        required_fields = [
+            "name", "lastname", "email", "companyId"
+        ]
+        for field in required_fields:
+            if field not in contact:
+                raise ValueError(f"Missing required field: {field}")
+
+        return self._make_request("POST", url, json=contact)
+
+    def get_contacts(self, filter) -> Dict[str, Any]:
+        """Retrieves a specific contact item.
+
+        Args:
+            contact_id (str): The ID of the contact item.
+            filter (Dict[str, Any]): The filter to apply to the contacts.
+
+        Returns:
+            Dict[str, Any]: The retrieved contact item.
+        """
+        url = f"{self.base_url}/crm/contacts"
+        if filter:
+            url = f"{url}?filter={json.dumps(filter)}"
+
+        return self._make_request("GET", url)
+    
+    def update_contact(self, contact_id: str, contact: Dict[str, Any]) -> Dict[str, Any]:
+        """Updates a specific contact item.
+
+        Args:
+            contact_id (str): The ID of the contact item.
+            contact (Dict[str, Any]): The updated contact data.
+
+        Returns:
+            Dict[str, Any]: The updated contact item.
+        """
+        url = f"{self.base_url}/crm/contacts/{contact_id}"
+        return self._make_request("PATCH", url, json=contact)
+    
+    def delete_contact(self, contact_id: str) -> None:
+        """Deletes a specific contact item.
+
+        Args:
+            contact_id (str): The ID of the contact item.
+        """
+        url = f"{self.base_url}/crm/contacts/{contact_id}"
+        self._make_request("DELETE", url)
+
+    ####################################################################################
+    # Campaigns API Methods                                                             #
+    ####################################################################################
+
+    def create_campaign(self, campaign: Dict[str, Any]) -> Dict[str, Any]:
+        """Creates a new campaign item.
+
+        Args:
+            campaign (Dict[str, Any]): The campaign data to create.
+
+        Returns:
+            Dict[str, Any]: The created campaign item.
+        """
+        url = f"{self.base_url}/campaigns"
+
+        # Ensure required fields are present
+        required_fields = [
+            "name", "companyId"
+        ]
+        for field in required_fields:
+            if field not in campaign:
+                raise ValueError(f"Missing required field: {field}")
+
+        return self._make_request("POST", url, json=campaign)
+    
+    def get_campaigns(self, filter) -> Dict[str, Any]:
+        """Retrieves a specific campaign item.
+
+        Args:
+            campaign_id (str): The ID of the campaign item.
+            filter (Dict[str, Any]): The filter to apply to the campaigns.
+
+        Returns:
+            Dict[str, Any]: The retrieved campaign item.
+        """
+        url = f"{self.base_url}/campaigns"
+        if filter:
+            url = f"{url}?filter={json.dumps(filter)}"
+
+        return self._make_request("GET", url)
+    
+    def create_campaign_session(self, campaign_id: str, session: Dict[str, Any]) -> Dict[str, Any]:
+        """Creates a new campaign session item.
+
+        Args:
+            campaign_id (str): The ID of the campaign.
+            session (Dict[str, Any]): The session data to create.
+
+        Returns:
+            Dict[str, Any]: The created campaign session item.
+        """
+        url = f"{self.base_url}/campaigns/{campaign_id}/session"
+
+        # Ensure required fields are present
+        required_fields = [
+            "crmContactId"
+        ]
+        for field in required_fields:
+            if field not in session:
+                raise ValueError(f"Missing required field: {field}")
+            
+        if len(session.get("crmContactId")) == 0:
+            raise ValueError("Contact ID cannot be empty.")
+
+        return self._make_request("POST", url, json=session)
+    
+    def get_campaign_sessions(self, campaign_id: str, filter) -> Dict[str, Any]:
+        """Retrieves a specific campaign session item.
+
+        Args:
+            campaign_id (str): The ID of the campaign.
+            filter (Dict[str, Any]): The filter to apply to the campaign sessions.
+
+        Returns:
+            Dict[str, Any]: The retrieved campaign session item.
+        """
+        url = f"{self.base_url}/campaigns/{campaign_id}/sessions"
+        if filter:
+            url = f"{url}?filter={json.dumps(filter)}"
+
+        return self._make_request("GET", url)

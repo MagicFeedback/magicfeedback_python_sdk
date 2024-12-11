@@ -1,0 +1,11 @@
+LICENCE
+README.md
+pyproject.toml
+src/__init__.py
+src/magicfeedback.py
+src/MagicFeedback.egg-info/PKG-INFO
+src/MagicFeedback.egg-info/SOURCES.txt
+src/MagicFeedback.egg-info/dependency_links.txt
+src/MagicFeedback.egg-info/top_level.txt
+tests/test_apikey.py
+tests/test_feedback_create.py
