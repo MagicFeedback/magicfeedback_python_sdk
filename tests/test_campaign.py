@@ -5,7 +5,7 @@ import pytest
 
 from src.magicfeedback import MagicFeedbackClient
 
-'''
+
 def test_create_campaign(client):
     """Tests creating a new campaign item."""
 
@@ -34,7 +34,6 @@ def test_list_campaign(client):
 
     response = client.get_campaigns(filter)
     assert len(response) > 0
-'''
 
 def test_create_campaign_session(client):
     """Tests creating a new campaign session item."""

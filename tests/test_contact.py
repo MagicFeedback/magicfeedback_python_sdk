@@ -29,6 +29,8 @@ def test_create_contact(client):
     assert response["lastname"] == last_name
     assert response["email"] == email
 
+    response = client.update_contact(response["id"], {"name": "Updated Name"})
+
 def test_list_contact(client):
     """Tests listing contact items."""
 

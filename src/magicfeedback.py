@@ -65,9 +65,12 @@ class MagicFeedbackClient:
         response.raise_for_status()  # Raise exception for non-2xx status codes
         # TODO: Control the status of the call
         print("Status code: ", response.status_code)
-        print("Response: ", response.json())
-
-        return response.json()
+        # Control if exist response that can be converted in json
+        if response.text:
+            print("Response: ", response.json())
+            return response.json()
+        
+        return {}
 
     ####################################################################################
     # Feedback API Methods                                                             #
