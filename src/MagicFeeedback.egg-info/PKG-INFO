@@ -1,6 +1,6 @@
-Metadata-Version: 2.1
+Metadata-Version: 2.2
 Name: MagicFeeedback
-Version: 0.0.2
+Version: 0.0.3
 Summary: SDK for MagicFeedback API
 Author-email: Francisco Arias <farias@magicfedback.io>
 Project-URL: Homepage, https://github.com/MagicFeedback/magicfeedback_python_sdk
