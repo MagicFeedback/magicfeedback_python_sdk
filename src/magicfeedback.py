@@ -272,7 +272,24 @@ class MagicFeedbackClient:
         Returns:
             Dict[str, Any]: The retrieved campaign session item.
         """
-        url = f"{self.base_url}/campaigns/{campaign_id}/sessions"
+        url = f"{self.base_url}/campaigns/{campaign_id}/session"
+        if filter:
+            url = f"{url}?filter={json.dumps(filter)}"
+
+        return self._make_request("GET", url)
+    
+    ####################################################################################
+    # Metrics API Methods                                                             #
+    ####################################################################################
+
+    def get_metrics(self, filter) -> Dict[str, Any]:
+        """Retrieves metrics data.
+        Args:
+            filter (Dict[str, Any]): The filter to apply to the metrics.
+        Returns:
+            Dict[str, Any]: The retrieved metrics data.
+        """
+        url = f"{self.base_url}/metrics"
         if filter:
             url = f"{url}?filter={json.dumps(filter)}"
 
