@@ -96,6 +96,13 @@ class MagicFeedbackClient:
         for field in required_fields:
             if field not in feedback:
                 raise ValueError(f"Missing required field: {field}")
+        
+       # Ensure answers.values are wrapped in a list if not already
+        if "answers" in feedback and isinstance(feedback["answers"], list):
+            for answer in feedback["answers"]:
+                if "value" in answer and not isinstance(answer["value"], list):
+                    # Wrap the value in a list if it is not already
+                    answer["value"] = [answer["value"]]
 
         return self._make_request("POST", url, json=feedback)
 
