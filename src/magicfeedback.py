@@ -69,7 +69,7 @@ class MagicFeedbackClient:
         if response.text:
             print("Response: ", response.json())
             return response.json()
-        
+
         return {}
 
     ####################################################################################
@@ -96,7 +96,7 @@ class MagicFeedbackClient:
         for field in required_fields:
             if field not in feedback:
                 raise ValueError(f"Missing required field: {field}")
-        
+
        # Ensure answers.values are wrapped in a list if not already
         if "answers" in feedback and isinstance(feedback["answers"], list):
             for answer in feedback["answers"]:
@@ -180,7 +180,7 @@ class MagicFeedbackClient:
             url = f"{url}?filter={json.dumps(filter)}"
 
         return self._make_request("GET", url)
-    
+
     def update_contact(self, contact_id: str, contact: Dict[str, Any]) -> Dict[str, Any]:
         """Updates a specific contact item.
 
@@ -193,7 +193,7 @@ class MagicFeedbackClient:
         """
         url = f"{self.base_url}/crm/contacts/{contact_id}"
         return self._make_request("PATCH", url, json=contact)
-    
+
     def delete_contact(self, contact_id: str) -> None:
         """Deletes a specific contact item.
 
@@ -227,7 +227,7 @@ class MagicFeedbackClient:
                 raise ValueError(f"Missing required field: {field}")
 
         return self._make_request("POST", url, json=campaign)
-    
+
     def get_campaigns(self, filter) -> Dict[str, Any]:
         """Retrieves a specific campaign item.
 
@@ -243,7 +243,7 @@ class MagicFeedbackClient:
             url = f"{url}?filter={json.dumps(filter)}"
 
         return self._make_request("GET", url)
-    
+
     def create_campaign_session(self, campaign_id: str, session: Dict[str, Any]) -> Dict[str, Any]:
         """Creates a new campaign session item.
 
@@ -263,12 +263,12 @@ class MagicFeedbackClient:
         for field in required_fields:
             if field not in session:
                 raise ValueError(f"Missing required field: {field}")
-            
+
         if len(session.get("crmContactId")) == 0:
             raise ValueError("Contact ID cannot be empty.")
 
         return self._make_request("POST", url, json=session)
-    
+
     def get_campaign_sessions(self, campaign_id: str, filter) -> Dict[str, Any]:
         """Retrieves a specific campaign session item.
 
@@ -284,7 +284,7 @@ class MagicFeedbackClient:
             url = f"{url}?filter={json.dumps(filter)}"
 
         return self._make_request("GET", url)
-    
+
     ####################################################################################
     # Metrics API Methods                                                             #
     ####################################################################################
