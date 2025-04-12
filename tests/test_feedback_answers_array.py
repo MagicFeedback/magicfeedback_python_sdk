@@ -1,5 +1,7 @@
 import pytest
+
 from src.magicfeedback import MagicFeedbackClient
+
 
 def test_create_feedback_with_answer_wrapping(client):
     """Tests creating a new feedback item and ensures answers.value is wrapped in a list if not already."""
@@ -31,7 +33,7 @@ def test_create_feedback_with_answer_wrapping(client):
         "productId": "MAGICFEEDBACK_DEV_SDK_GENERAL",
     }
 
-    response = client.create_feedback(feedback_data)
+    response = client.feedbacks.create(feedback_data)
 
     assert "id" in response
     # Check if the created feedback has the correct name

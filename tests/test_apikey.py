@@ -2,6 +2,7 @@ import pytest
 
 from src.magicfeedback import MagicFeedbackClient
 
+
 def test_api_key_set(client):
     """Tests if the API key is set correctly."""
     assert client.api_key is not None

@@ -21,7 +21,7 @@ def test_create_contact(client):
         "companyId": "MAGICFEEDBACK_DEV_SDK"
     }
 
-    response = client.create_contact(contact_data)
+    response = client.contacts.create(contact_data)
 
     assert "id" in response
     # Check if the created contact has the correct name
@@ -29,7 +29,7 @@ def test_create_contact(client):
     assert response["lastname"] == last_name
     assert response["email"] == email
 
-    response = client.update_contact(response["id"], {"name": "Updated Name"})
+    response = client.contacts.update(response["id"], {"name": "Updated Name"})
 
 def test_list_contact(client):
     """Tests listing contact items."""
@@ -40,7 +40,7 @@ def test_list_contact(client):
         }
     }
 
-    response = client.get_contacts(filter)
+    response = client.contacts.get(filter)
     assert len(response) > 0
 
 @pytest.fixture

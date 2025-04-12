@@ -33,7 +33,7 @@ def test_create_feedback(client):
         "productId": "MAGICFEEDBACK_DEV_SDK_GENERAL",
     }
 
-    response = client.create_feedback(feedback_data)
+    response = client.feedbacks.create(feedback_data)
 
     assert "id" in response
     # Check if the created feedback has the correct name
