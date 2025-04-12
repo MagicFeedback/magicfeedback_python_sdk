@@ -1,4 +1,5 @@
 import json
+import logging
 from typing import Any, Dict
 
 import requests
@@ -9,12 +10,32 @@ class MagicFeedbackClient:
 
     def __init__(self, user: str, password: str, base_url: str = "https://api.magicfeedback.io", ip_key: str = 'AIzaSyAKcR895VURSQZSN2T_RD6jX_9y5HRmH80'):
 
+        self.logger = logging.getLogger("magicfeedback_sdk")
+        self.logger.addHandler(logging.NullHandler())
+
         self.base_url = base_url
         self.ip_key = ip_key
 
         self.api_key = self.get_api_key(user, password)
-        print("API Key: ", self.api_key)
+        self.logger.info("API Key: %s", self.api_key)
         self.headers = {"Authorization": f"Bearer {self.api_key}"}
+
+    def logging(self, level: int):
+        """Sets the logging level for the SDK.
+
+        Args:
+            level (int): The logging level to set (e.g., logging.DEBUG, logging.INFO).
+        """
+        self.logger.setLevel(level)
+
+        # Evita agregar múltiples handlers si ya se configuró
+        if not any(isinstance(h, logging.StreamHandler) for h in self.logger.handlers):
+            handler = logging.StreamHandler()
+            handler.setLevel(level)
+            formatter = logging.Formatter(
+                "%(asctime)s - %(levelname)s - %(message)s")
+            handler.setFormatter(formatter)
+            self.logger.addHandler(handler)
 
     def get_api_key(self, user, password):
         """Obtains the API key using user and password authentication."""
@@ -33,9 +54,8 @@ class MagicFeedbackClient:
             str: The obtained ID token.
         """
         # TODO: Control in case the call is not good
-        print("Logging in with user and password...")
-        print("User: ", user)
-        print("Password: ", password)
+        self.logger.info("Logging in with user and password...")
+        self.logger.info("User: %s", user)
 
         options = {
             "method": "POST",
@@ -64,10 +84,10 @@ class MagicFeedbackClient:
             method, url, headers=self.headers, json=json)
         response.raise_for_status()  # Raise exception for non-2xx status codes
         # TODO: Control the status of the call
-        print("Status code: ", response.status_code)
+        self.logger.debug("Status code: %s", response.status_code)
         # Control if exist response that can be converted in json
         if response.text:
-            print("Response: ", response.json())
+            self.logger.debug("Response: %s", response.json())
             return response.json()
 
         return {}
