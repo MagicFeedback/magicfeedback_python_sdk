@@ -21,8 +21,11 @@ class FeedbackAPI:
 
         return make_request("POST", url, self.headers, json=feedback, logger=self.logger)
 
-    def getById(self, feedback_id):
+    def get_id(self, feedback_id, filter=None):
         url = f"{self.base_url}/feedbacks/{feedback_id}"
+        if filter:
+            import json
+            url += f"?filter={json.dumps(filter)}"
         return make_request("GET", url, self.headers, logger=self.logger)
     
     def get(self, filter=None):
