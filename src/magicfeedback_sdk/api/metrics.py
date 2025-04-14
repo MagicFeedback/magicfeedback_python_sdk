@@ -1,4 +1,4 @@
-from ..utils.request import make_request
+from magicfeedback_sdk.utils.request import make_request
 
 
 class MetricsAPI:

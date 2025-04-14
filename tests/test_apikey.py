@@ -1,6 +1,6 @@
 import pytest
 
-from src.magicfeedback import MagicFeedbackClient
+from magicfeedback_sdk import MagicFeedback
 
 
 def test_api_key_set(client):
@@ -11,6 +11,6 @@ def test_api_key_set(client):
 def client():
     """Provides a MagicFeedbackClient instance for testing."""
 
-    client = MagicFeedbackClient('sdk_tester@magicfeedback.io', 'caracter')
+    client = MagicFeedback('sdk_tester@magicfeedback.io', 'caracter')
 
     return client

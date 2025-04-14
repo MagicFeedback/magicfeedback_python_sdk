@@ -1,12 +1,12 @@
-from .api.campaigns import CampaignsAPI
-from .api.contacts import ContactsAPI
-from .api.feedback import FeedbackAPI
-from .api.metrics import MetricsAPI
-from .auth import AuthManager
-from .logging_config import configure_logger
+from magicfeedback_sdk.api.campaigns import CampaignsAPI
+from magicfeedback_sdk.api.contacts import ContactsAPI
+from magicfeedback_sdk.api.feedback import FeedbackAPI
+from magicfeedback_sdk.api.metrics import MetricsAPI
+from magicfeedback_sdk.auth import AuthManager
+from magicfeedback_sdk.logging_config import configure_logger
 
 
-class MagicFeedbackClient:
+class MagicFeedback:
     def __init__(self, user: str, password: str, base_url: str = "https://api.magicfeedback.io", ip_key: str = "AIzaSyAKcR895VURSQZSN2T_RD6jX_9y5HRmH80"):
         self.logger = configure_logger()
         self.base_url = base_url
