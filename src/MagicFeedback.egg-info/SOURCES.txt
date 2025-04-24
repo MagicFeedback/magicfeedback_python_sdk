@@ -14,6 +14,7 @@ src/magicfeedback_sdk/api/__init__.py
 src/magicfeedback_sdk/api/campaigns.py
 src/magicfeedback_sdk/api/contacts.py
 src/magicfeedback_sdk/api/feedback.py
+src/magicfeedback_sdk/api/integrations_questions.py
 src/magicfeedback_sdk/api/metrics.py
 src/magicfeedback_sdk/utils/__init__.py
 src/magicfeedback_sdk/utils/request.py
@@ -22,3 +23,4 @@ tests/test_campaign.py
 tests/test_contact.py
 tests/test_feedback_answers_array.py
 tests/test_feedback_create.py
+tests/test_integrations_questions.py
