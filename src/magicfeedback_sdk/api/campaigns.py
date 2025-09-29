@@ -38,3 +38,10 @@ class CampaignsAPI:
             import json
             url += f"?filter={json.dumps(filter)}"
         return make_request("GET", url, self.headers, logger=self.logger)
+    
+    def get_sessions_feedbacks(self, campaign_id, filter=None):
+        url = f"{self.base_url}/campaigns/{campaign_id}/sessions/feedback"
+        if filter:
+            import json
+            url += f"?filter={json.dumps(filter)}"
+        return make_request("GET", url, self.headers, logger=self.logger)
