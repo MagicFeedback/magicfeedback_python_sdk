@@ -1,10 +1,10 @@
 Metadata-Version: 2.4
 Name: MagicFeedback
-Version: 1.0.6
+Version: 1.0.7
 Summary: SDK for MagicFeedback API
 Home-page: https://github.com/MagicFeedback/magicfeedback_python_sdk
-Author: Francisc Arias
-Author-email: Francisco Arias <farias@magicfedback.io>
+Author: Francisco Arias
+Author-email: Francisco Arias <farias@magicfeedback.io>
 Project-URL: Homepage, https://github.com/MagicFeedback/magicfeedback_python_sdk
 Project-URL: Issues, https://github.com/MagicFeedback/magicfeedback_python_sdk/issues
 Classifier: Programming Language :: Python :: 3

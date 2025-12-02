@@ -16,6 +16,8 @@ src/magicfeedback_sdk/api/contacts.py
 src/magicfeedback_sdk/api/feedback.py
 src/magicfeedback_sdk/api/integrations_questions.py
 src/magicfeedback_sdk/api/metrics.py
+src/magicfeedback_sdk/api/products.py
+src/magicfeedback_sdk/api/reports.py
 src/magicfeedback_sdk/utils/__init__.py
 src/magicfeedback_sdk/utils/request.py
 tests/test_apikey.py

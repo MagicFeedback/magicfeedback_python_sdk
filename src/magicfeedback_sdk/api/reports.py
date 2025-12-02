@@ -18,6 +18,13 @@ class ReportsAPI:
         self.headers = headers
         self.logger = logger
 
+    def get(self, filter=None):
+        url = f"{self.base_url}/reporting/report"
+        if filter:
+            import json
+            url += f"?filter={json.dumps(filter)}"
+        return make_request("GET", url, self.headers, logger=self.logger)
+
     def get_newsletter(self, filter=None):
         url = f"{self.base_url}/reporting/report/newsletter"
         if filter:
