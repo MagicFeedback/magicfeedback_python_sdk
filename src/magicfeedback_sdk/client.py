@@ -1,8 +1,9 @@
 from magicfeedback_sdk.api.campaigns import CampaignsAPI
 from magicfeedback_sdk.api.contacts import ContactsAPI
 from magicfeedback_sdk.api.feedback import FeedbackAPI
-from magicfeedback_sdk.api.metrics import MetricsAPI
 from magicfeedback_sdk.api.integrations_questions import IntegrationsQuestionsAPI
+from magicfeedback_sdk.api.metrics import MetricsAPI
+from magicfeedback_sdk.api.products import ProductsAPI
 from magicfeedback_sdk.auth import AuthManager
 from magicfeedback_sdk.logging_config import configure_logger
 
@@ -23,6 +24,7 @@ class MagicFeedback:
         self.campaigns = CampaignsAPI(self.base_url, self.headers, self.logger)
         self.metrics = MetricsAPI(self.base_url, self.headers, self.logger)
         self.integrations_questions = IntegrationsQuestionsAPI(self.base_url, self.headers, self.logger)
+        self.products = ProductsAPI(self.base_url, self.headers, self.logger)   
 
     def set_logging(self, level):
         self.logger.setLevel(level)

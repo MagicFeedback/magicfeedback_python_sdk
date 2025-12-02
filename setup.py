@@ -2,10 +2,10 @@ from setuptools import find_packages, setup
 
 setup(
     name="magicfeedback_sdk",
-    version="1.0.3.2",
+    version="1.0.5",
     description="A Python SDK for interacting with the MagicFeedback API",
-    author="Francisc Arias",
-    author_email="farias@magicfeedback.io.io",
+    author="Francisco Arias",
+    author_email="farias@magicfeedback.io",
     url="https://github.com/MagicFeedback/magicfeedback_python_sdk",
     package_dir={"": "src"},
     packages=find_packages(where="src"),
