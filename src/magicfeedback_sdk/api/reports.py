@@ -31,3 +31,7 @@ class ReportsAPI:
             import json
             url += f"?filter={json.dumps(filter)}"
         return make_request("GET", url, self.headers, logger=self.logger)
+    
+    def update(self, report_id, report):
+        url = f"{self.base_url}/reporting/report/{report_id}"
+        return make_request("PATCH", url, self.headers, json=report, logger=self.logger)
