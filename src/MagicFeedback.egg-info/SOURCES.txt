@@ -12,6 +12,7 @@ src/magicfeedback_sdk/client.py
 src/magicfeedback_sdk/logging_config.py
 src/magicfeedback_sdk/api/__init__.py
 src/magicfeedback_sdk/api/campaigns.py
+src/magicfeedback_sdk/api/companies.py
 src/magicfeedback_sdk/api/contacts.py
 src/magicfeedback_sdk/api/feedback.py
 src/magicfeedback_sdk/api/integrations_questions.py
