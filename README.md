@@ -29,7 +29,7 @@ feedback_data = {
     "type": "DOCUMENT",
     # ... other required fields
 }
-response = client.create_feedback(feedback_data)
+response = client.feedback.create(feedback_data)
 
 # Print the response
 print(response)
@@ -38,10 +38,10 @@ print(response)
 
 **API Reference**
 
-- **`create_feedback(feedback)`:** Creates a new feedback item.
-- **`get_feedback(feedback_id)`:** Retrieves a specific feedback item.
-- **`update_feedback(feedback_id, feedback)`:** Updates a specific feedback item.
-- **`delete_feedback(feedback_id)`:** Deletes a specific feedback item.
+- **`feedback.create(feedback)`:** Creates a new feedback item.
+- **`feedback.get(feedback_id)`:** Retrieves a specific feedback item.
+- **`feedback.update(feedback_id, feedback)`:** Updates a specific feedback item.
+- **`feedback.delete(feedback_id)`:** Deletes a specific feedback item.
 
 **Additional Information**
 

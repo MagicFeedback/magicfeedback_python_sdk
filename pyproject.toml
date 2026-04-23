@@ -1,8 +1,8 @@
 [project]
 name = "MagicFeedback"
-version = "0.0.2"
+version = "1.0.10"
 authors = [
-  { name="Francisco Arias", email="farias@magicfedback.io" },
+  { name="Francisco Arias", email="farias@magicfeedback.io" },
 ]
 description = "SDK for MagicFeedback API"
 readme = "README.md"

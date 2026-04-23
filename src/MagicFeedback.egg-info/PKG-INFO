@@ -1,8 +1,10 @@
-Metadata-Version: 2.1
+Metadata-Version: 2.4
 Name: MagicFeedback
-Version: 0.0.2
+Version: 1.0.10
 Summary: SDK for MagicFeedback API
-Author-email: Francisco Arias <farias@magicfedback.io>
+Home-page: https://github.com/MagicFeedback/magicfeedback_python_sdk
+Author: Francisco Arias
+Author-email: Francisco Arias <farias@magicfeedback.io>
 Project-URL: Homepage, https://github.com/MagicFeedback/magicfeedback_python_sdk
 Project-URL: Issues, https://github.com/MagicFeedback/magicfeedback_python_sdk/issues
 Classifier: Programming Language :: Python :: 3
@@ -11,6 +13,10 @@ Classifier: Operating System :: OS Independent
 Requires-Python: >=3.8
 Description-Content-Type: text/markdown
 License-File: LICENCE
+Dynamic: author
+Dynamic: home-page
+Dynamic: license-file
+Dynamic: requires-python
 
 # MagicFeedback SDK
 
@@ -43,7 +49,7 @@ feedback_data = {
     "type": "DOCUMENT",
     # ... other required fields
 }
-response = client.create_feedback(feedback_data)
+response = client.feedback.create(feedback_data)
 
 # Print the response
 print(response)
@@ -52,10 +58,10 @@ print(response)
 
 **API Reference**
 
-- **`create_feedback(feedback)`:** Creates a new feedback item.
-- **`get_feedback(feedback_id)`:** Retrieves a specific feedback item.
-- **`update_feedback(feedback_id, feedback)`:** Updates a specific feedback item.
-- **`delete_feedback(feedback_id)`:** Deletes a specific feedback item.
+- **`feedback.create(feedback)`:** Creates a new feedback item.
+- **`feedback.get(feedback_id)`:** Retrieves a specific feedback item.
+- **`feedback.update(feedback_id, feedback)`:** Updates a specific feedback item.
+- **`feedback.delete(feedback_id)`:** Deletes a specific feedback item.
 
 **Additional Information**
 

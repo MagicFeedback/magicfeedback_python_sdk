@@ -3,7 +3,7 @@ import string
 
 import pytest
 
-from src.magicfeedback import MagicFeedbackClient
+from magicfeedback_sdk import MagicFeedback
 
 
 def test_create_contact(client):
@@ -21,13 +21,15 @@ def test_create_contact(client):
         "companyId": "MAGICFEEDBACK_DEV_SDK"
     }
 
-    response = client.create_contact(contact_data)
+    response = client.contacts.create(contact_data)
 
     assert "id" in response
     # Check if the created contact has the correct name
     assert response["name"] == name
     assert response["lastname"] == last_name
     assert response["email"] == email
+
+    response = client.contacts.update(response["id"], {"name": "Updated Name"})
 
 def test_list_contact(client):
     """Tests listing contact items."""
@@ -38,14 +40,14 @@ def test_list_contact(client):
         }
     }
 
-    response = client.get_contacts(filter)
+    response = client.contacts.get(filter)
     assert len(response) > 0
 
 @pytest.fixture
 def client():
     """Provides a MagicFeedbackClient instance for testing."""
 
-    client = MagicFeedbackClient('sdk_tester@magicfeedback.io', 'caracter')
+    client = MagicFeedback('sdk_tester@magicfeedback.io', 'caracter')
     return client
 
 # Generate random name, last name and email
