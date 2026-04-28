@@ -37,7 +37,7 @@ class FeedbackAPI:
 
     def update(self, feedback_id, feedback):
         url = f"{self.base_url}/feedbacks/{feedback_id}"
-        return make_request("PUT", url, self.headers, json=feedback, logger=self.logger)
+        return make_request("PATCH", url, self.headers, json=feedback, logger=self.logger)
 
     def delete(self, feedback_id):
         url = f"{self.base_url}/feedbacks/{feedback_id}"
