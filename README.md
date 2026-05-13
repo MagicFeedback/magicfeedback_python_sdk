@@ -26,6 +26,7 @@ feedback_data = {
     "integrationId": "your-integration-id",
     "companyId": "YOUR_COMPANY",
     "productId": "YOUR_PRODUCT",
+    "external_id": "YOUR EXTERNAL ID",
     "answers": [
         {"key": "score", "value": "4"},
         {"key": "comment", "value": "Great service!"},

@@ -7,6 +7,7 @@ from magicfeedback_sdk.api.products import ProductsAPI
 from magicfeedback_sdk.api.reports import ReportsAPI
 from magicfeedback_sdk.api.requests import RequestsAPI
 from magicfeedback_sdk.api.companies import CompaniesAPI
+from magicfeedback_sdk.api.signals import SignalsAPI
 from magicfeedback_sdk.auth import AuthManager
 from magicfeedback_sdk.logging_config import configure_logger
 
@@ -31,6 +32,7 @@ class MagicFeedback:
         self.reports = ReportsAPI(self.base_url, self.headers, self.logger)
         self.companies = CompaniesAPI(self.base_url, self.headers, self.logger)
         self.requests = RequestsAPI(self.base_url, self.headers, self.logger)
+        self.signals = SignalsAPI(self.base_url, self.headers, self.logger)
 
     def set_logging(self, level):
         self.logger.setLevel(level)
