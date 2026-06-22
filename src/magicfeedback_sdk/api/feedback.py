@@ -42,3 +42,22 @@ class FeedbackAPI:
     def delete(self, feedback_id):
         url = f"{self.base_url}/feedbacks/{feedback_id}"
         return make_request("DELETE", url, self.headers, logger=self.logger)
+
+    def upload_attachment(self, feedback_id, file_path, filename=None, extra_data=None):
+        url = f"{self.base_url}/feedbacks/{feedback_id}/attachments"
+
+        with open(file_path, "rb") as f:
+            file_bytes = f.read()
+
+        display_name = filename or file_path.split("/")[-1]
+
+        files = {"file": (display_name, file_bytes)}
+        data = {"filename": display_name}
+        if extra_data is not None:
+            import json
+            data["extraData"] = json.dumps(extra_data) if not isinstance(extra_data, str) else extra_data
+
+        # Remove Content-Type so requests sets it automatically with the multipart boundary
+        headers = {k: v for k, v in self.headers.items() if k.lower() != "content-type"}
+
+        return make_request("POST", url, headers, files=files, data=data, logger=self.logger)
