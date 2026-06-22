@@ -1,58 +1,80 @@
-# MagicFeedback SDK
+# MagicFeedback Python SDK
 
-**A Python SDK for interacting with the MagicFeedback API**
+Python SDK for the MagicFeedback API.
 
-**Installation**
+## Installation
 
-Bash
-
-```
-pip install MagicFeeedback
-
+```bash
+pip install MagicFeedback
 ```
 
-Use code [with caution.](/faq#coding)
+## Quick start
 
-**Usage**
+```python
+from magicfeedback_sdk import MagicFeedback
 
-Python
-
-```
-from magicfeedback import MagicFeedbackClient
-
-# Create a MagicFeedbackClient instance
-client = MagicFeedbackClient('email', 'password')
-
-# Create a new feedback item
-feedback_data = {
-    "name": "Test Feedback",
-    "type": "DOCUMENT",
-    # ... other required fields
-}
-response = client.feedback.create(feedback_data)
-
-# Print the response
-print(response)
-
+client = MagicFeedback(
+    user="your@email.com",
+    password="your_password"
+)
 ```
 
-**API Reference**
+By default the client points to the production API. For dev/staging pass `base_url`:
 
-- **`feedback.create(feedback)`:** Creates a new feedback item.
-- **`feedback.get(feedback_id)`:** Retrieves a specific feedback item.
-- **`feedback.update(feedback_id, feedback)`:** Updates a specific feedback item.
-- **`feedback.delete(feedback_id)`:** Deletes a specific feedback item.
+```python
+client = MagicFeedback(
+    user="your@email.com",
+    password="your_password",
+    base_url="https://dev-api.magicfeedback.io"
+)
+```
 
-**Additional Information**
+## Available modules
 
-- **Authentication:** The SDK requires an user / password for authentication. You can obtain from the MagicFeedback platform.
-- **Error Handling:** The SDK handles common API errors and raises appropriate exceptions.
-- **Customizations:** You can customize the SDK to fit your specific needs by extending the `MagicFeedbackClient` class or creating additional helper functions.
+| Module | Access via |
+|---|---|
+| Feedbacks | `client.feedbacks` |
+| Campaigns | `client.campaigns` |
+| Contacts | `client.contacts` |
+| Metrics | `client.metrics` |
+| Products | `client.products` |
+| Reports | `client.reports` |
+| Integration questions | `client.integrations_questions` |
 
-**License**
+## Feedback examples
 
-This project is licensed under the MIT License.
+```python
+# Create
+response = client.feedbacks.create({
+    "name": "My feedback",
+    "type": "APP",
+    "identity": "MAGICFORM",
+    "integrationId": "<id>",
+    "companyId": "<id>",
+    "productId": "<id>",
+    "answers": [{"key": "comment", "value": "Great product"}]
+})
 
-**Contact**
+# Get by ID (with optional relations)
+feedback = client.feedbacks.get_id(
+    "<feedback_id>",
+    filter={"include": [{"relation": "feedbackAttachments"}]}
+)
 
-For any questions or support, please contact farias@magicfeedback.io.
+# Upload a file attachment
+client.feedbacks.upload_attachment(
+    "<feedback_id>",
+    file_path="/path/to/file.pdf",
+    filename="report.pdf",          # optional, defaults to file name
+    extra_data={"source": "crm"}    # optional, any JSON-serialisable dict
+)
+
+# List, update, delete
+feedbacks = client.feedbacks.get()
+client.feedbacks.update("<feedback_id>", {"name": "Updated"})
+client.feedbacks.delete("<feedback_id>")
+```
+
+## License
+
+MIT
