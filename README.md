@@ -18,11 +18,6 @@ from magicfeedback_sdk import MagicFeedback
 client = MagicFeedback("email", "password")
 ```
 
-Pass `base_url` to target a non-production environment:
-
-```python
-client = MagicFeedback("email", "password", base_url="https://dev-api.magicfeedback.io")
-```
 
 ## API Reference
 
