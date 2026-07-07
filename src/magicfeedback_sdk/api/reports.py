@@ -35,3 +35,17 @@ class ReportsAPI:
     def update(self, report_id, report):
         url = f"{self.base_url}/reporting/report/{report_id}"
         return make_request("PATCH", url, self.headers, json=report, logger=self.logger)
+
+    def regenerate(self, report_id, body=None):
+        """
+        Regenerate/republish a report.
+
+        Args:
+            report_id: Report UUID to regenerate
+            body: Optional request body for publish configuration
+
+        Returns:
+            Response from the publish endpoint
+        """
+        url = f"{self.base_url}/reporting/report/{report_id}/publish"
+        return make_request("POST", url, self.headers, json=body or {}, logger=self.logger)
