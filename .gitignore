@@ -21,3 +21,6 @@ test-results/
 # Other files to ignore
 *.swp
 *~
+
+# Environment variables
+.env
