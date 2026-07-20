@@ -5,6 +5,7 @@ setup.py
 src/MagicFeedback.egg-info/PKG-INFO
 src/MagicFeedback.egg-info/SOURCES.txt
 src/MagicFeedback.egg-info/dependency_links.txt
+src/MagicFeedback.egg-info/requires.txt
 src/MagicFeedback.egg-info/top_level.txt
 src/magicfeedback_sdk/__init__.py
 src/magicfeedback_sdk/auth.py
@@ -26,6 +27,8 @@ src/magicfeedback_sdk/utils/request.py
 tests/test_apikey.py
 tests/test_campaign.py
 tests/test_contact.py
+tests/test_datastore_token.py
 tests/test_feedback_answers_array.py
 tests/test_feedback_create.py
 tests/test_integrations_questions.py
+tests/test_request_done_message.py

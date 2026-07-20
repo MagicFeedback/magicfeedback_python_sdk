@@ -2,7 +2,7 @@ from setuptools import find_packages, setup
 
 setup(
     name="magicfeedback_sdk",
-    version="1.0.16",
+    version="1.0.17",
     description="A Python SDK for interacting with the MagicFeedback API",
     author="Francisco Arias",
     author_email="farias@magicfeedback.io",
@@ -10,7 +10,9 @@ setup(
     package_dir={"": "src"},
     packages=find_packages(where="src"),
     install_requires=[
-        "requests>=2.0.0"
+        "requests>=2.0.0",
+        "google-cloud-pubsub>=2.0.0",
+        "google-cloud-datastore>=2.16.0",
     ],
     classifiers=[
         "Programming Language :: Python :: 3",

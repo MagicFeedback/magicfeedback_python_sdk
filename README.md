@@ -18,6 +18,58 @@ from magicfeedback_sdk import MagicFeedback
 client = MagicFeedback("email", "password")
 ```
 
+## Authentication
+
+The bearer token is resolved from one of two sources, selected with
+`auth_source`:
+
+- `"datastore"` **(default)** — read the token cached in Google Cloud Datastore
+  by the `update-token` job (kind `token-storage`, email
+  `robot@magicfeedback.io`, database `shared`). This avoids an Identity Platform
+  login on every use. If the cached token is missing, stale (older than
+  `token_max_age_min`, default 50 min) or Datastore is unreachable, the client
+  falls back to Identity Platform using `email`/`password`.
+- `"identity"` — always log in via Identity Platform (`signInWithPassword`), the
+  original behaviour, with no Datastore lookup.
+
+```python
+# Datastore-cached token (default), with Identity Platform fallback.
+# email/password are only needed for the fallback.
+client = MagicFeedback("email", "password")
+
+# Tune the Datastore lookup (all optional; shown with their defaults):
+client = MagicFeedback(
+    "email", "password",
+    auth_source="datastore",
+    gcp_project_id=None,             # None => inferred from Application Default Credentials
+    datastore_database_id="shared",
+    token_kind="token-storage",
+    token_email="robot@magicfeedback.io",
+    token_max_age_min=50,
+    datastore_timeout_s=5.0,         # cap the lookup so the fallback stays fast
+)
+
+# Original behaviour — always mint a fresh token via Identity Platform:
+client = MagicFeedback("email", "password", auth_source="identity")
+```
+
+The Datastore lookup is bounded by `datastore_timeout_s` (default 5s): if the
+cache is unreachable or the credentials are stale, the client falls back to
+Identity Platform within that budget instead of blocking on the Datastore
+client's default ~60s retry deadline.
+
+The Datastore path needs the `google-cloud-datastore` package (installed as a
+dependency) and Google Application Default Credentials with read access to the
+token entity (`gcloud auth application-default login` or
+`GOOGLE_APPLICATION_CREDENTIALS`).
+
+Helper methods:
+
+- `client.refresh_token()` — re-resolve the token (same `auth_source`) and
+  update the auth header in place across all sub-API clients. Useful for
+  long-lived clients whose token has expired.
+- `client.auth.get_token_from_datastore(allow_stale=False)` — read the cached
+  token directly; returns `None` when missing, stale or unreachable.
 
 ## API Reference
 
@@ -54,6 +106,13 @@ client = MagicFeedback("email", "password")
 ### `client.requests`
 - `get(filter=None)`, `get_id(request_id, filter=None)`, `update(request_id, request)`
 
+To mark a request DONE/ERROR asynchronously, publish a completion event to the
+`request-done` Pub/Sub topic (project `magicfeedback-prod-api`, topic
+`request-done`); the `request-done` Cloud Function consumes it and PATCHes the
+request. The SDK does not publish this itself — build the envelope with
+`build_done_message` and publish it directly. See
+[`examples/mark_request_done.py`](examples/mark_request_done.py).
+
 ## Examples
 
 ```python
@@ -84,6 +143,25 @@ client.feedbacks.upload_attachment(
     filename="report.pdf",          # optional, defaults to file name
     extra_data={"source": "crm"}    # optional, any JSON-serialisable dict
 )
+
+# Mark a request DONE via the request-done Pub/Sub topic.
+# The SDK builds the envelope; the producer publishes it directly.
+import json
+from google.cloud import pubsub_v1
+from magicfeedback_sdk.api.requests import build_done_message
+
+message = build_done_message(
+    "<request_id>",
+    "<company_id>",
+    output={"value": "…final result…"},
+    sources=["<feedbackId1>", "<feedbackId2>"],  # optional
+    logs="processed 2 items",                     # optional
+    # success=False, error={"message": "processing failed"}  # to mark ERROR
+)
+
+publisher = pubsub_v1.PublisherClient()
+topic_path = publisher.topic_path("magicfeedback-prod-api", "request-done")
+publisher.publish(topic_path, json.dumps(message).encode("utf-8")).result()
 ```
 
 ## Logging
