@@ -1,6 +1,6 @@
-# MagicFeedback Python SDK
+# Deepdots Python SDK
 
-Python SDK for the MagicFeedback API.
+Python SDK for the Deepdots API (the company was formerly called MagicFeedback).
 
 ## Installation
 
@@ -8,9 +8,34 @@ Python SDK for the MagicFeedback API.
 pip install MagicFeedback
 ```
 
-> Note: the distribution name on PyPI is `MagicFeedback`, but the import name is `magicfeedback_sdk`.
+> Note: the distribution name on PyPI is `MagicFeedback`; the import name is
+> either `deepdots_sdk` (current) or `magicfeedback_sdk` (original).
+
+## Naming: `deepdots_sdk` and `magicfeedback_sdk`
+
+MagicFeedback was renamed **Deepdots**. Both names work and refer to the *same*
+objects, so **no existing code needs to change**:
+
+| | Current name | Original name |
+|---|---|---|
+| Import package | `deepdots_sdk` | `magicfeedback_sdk` |
+| Client class | `Deepdots` | `MagicFeedback` |
+
+`deepdots_sdk` re-exports `magicfeedback_sdk` module by module, and `Deepdots`
+is the same class object as `MagicFeedback` — `MagicFeedback is Deepdots` is
+`True`, so `isinstance()` checks and subclasses behave identically. Submodule
+imports work under either name (`from deepdots_sdk.api.feedback import
+FeedbackAPI`). New code should prefer the Deepdots names.
 
 ## Usage
+
+```python
+from deepdots_sdk import Deepdots
+
+client = Deepdots("email", "password")
+```
+
+The original names remain fully supported:
 
 ```python
 from magicfeedback_sdk import MagicFeedback

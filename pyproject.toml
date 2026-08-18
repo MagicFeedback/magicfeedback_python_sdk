@@ -1,6 +1,6 @@
 [project]
 name = "MagicFeedback"
-version = "1.0.17"
+version = "1.0.18"
 authors = [
   { name="Francisco Arias", email="farias@magicfeedback.io" },
 ]
@@ -23,6 +23,13 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
+
+# src-layout with TWO top-level packages: `magicfeedback_sdk` (the implementation)
+# and `deepdots_sdk` (re-export mirror under the new company name). Declared
+# explicitly so both are guaranteed to ship in the wheel rather than relying on
+# setuptools auto-discovery.
+[tool.setuptools.packages.find]
+where = ["src"]
 
 [project.urls]
 Homepage = "https://github.com/MagicFeedback/magicfeedback_python_sdk"

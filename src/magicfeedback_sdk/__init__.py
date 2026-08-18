@@ -1,3 +1,3 @@
-from .client import MagicFeedback
+from .client import Deepdots, MagicFeedback
 
-__all__ = ["MagicFeedback"]
+__all__ = ["Deepdots", "MagicFeedback"]

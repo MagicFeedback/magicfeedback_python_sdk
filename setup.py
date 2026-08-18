@@ -2,7 +2,7 @@ from setuptools import find_packages, setup
 
 setup(
     name="magicfeedback_sdk",
-    version="1.0.17",
+    version="1.0.18",
     description="A Python SDK for interacting with the MagicFeedback API",
     author="Francisco Arias",
     author_email="farias@magicfeedback.io",

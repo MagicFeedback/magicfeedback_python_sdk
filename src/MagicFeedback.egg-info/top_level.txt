@@ -1,1 +1,2 @@
+deepdots_sdk
 magicfeedback_sdk

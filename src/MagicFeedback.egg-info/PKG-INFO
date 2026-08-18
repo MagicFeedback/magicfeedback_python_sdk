@@ -1,6 +1,6 @@
 Metadata-Version: 2.4
 Name: MagicFeedback
-Version: 1.0.17
+Version: 1.0.18
 Summary: SDK for MagicFeedback API
 Home-page: https://github.com/MagicFeedback/magicfeedback_python_sdk
 Author: Francisco Arias
@@ -128,7 +128,13 @@ Helper methods:
 
 ### `client.requests`
 - `get(filter=None)`, `get_id(request_id, filter=None)`, `update(request_id, request)`
-- `publish_done(request_id, company_id, output=None, success=True, status=None, sources=None, sources_key=None, logs=None, quality=None, error=None, project_id=None, topic=None)` — publishes a completion event to the `request-done` Pub/Sub topic. The `request-done` Cloud Function consumes it and PATCHes the request to `DONE` (or `ERROR` when `success=False`). Requires `google-cloud-pubsub` and Google Application Default Credentials with publish rights on the topic. The Pub/Sub project/topic default to PROD (`magicfeedback-prod-agent` / `request-done`); override at construction (`MagicFeedback(..., pubsub_project_id="magicfeedback-dev-agent")`) or per call (`project_id=`, `topic=`).
+
+To mark a request DONE/ERROR asynchronously, publish a completion event to the
+`request-done` Pub/Sub topic (project `magicfeedback-prod-api`, topic
+`request-done`); the `request-done` Cloud Function consumes it and PATCHes the
+request. The SDK does not publish this itself — build the envelope with
+`build_done_message` and publish it directly. See
+[`examples/mark_request_done.py`](examples/mark_request_done.py).
 
 ## Examples
 
@@ -161,22 +167,24 @@ client.feedbacks.upload_attachment(
     extra_data={"source": "crm"}    # optional, any JSON-serialisable dict
 )
 
-# Mark a request DONE via the request-done Pub/Sub topic
-client.requests.publish_done(
-    request_id="<request_id>",
-    company_id="<company_id>",
+# Mark a request DONE via the request-done Pub/Sub topic.
+# The SDK builds the envelope; the producer publishes it directly.
+import json
+from google.cloud import pubsub_v1
+from magicfeedback_sdk.api.requests import build_done_message
+
+message = build_done_message(
+    "<request_id>",
+    "<company_id>",
     output={"value": "…final result…"},
     sources=["<feedbackId1>", "<feedbackId2>"],  # optional
     logs="processed 2 items",                     # optional
+    # success=False, error={"message": "processing failed"}  # to mark ERROR
 )
 
-# Mark a request as ERROR
-client.requests.publish_done(
-    request_id="<request_id>",
-    company_id="<company_id>",
-    success=False,
-    error={"message": "processing failed"},
-)
+publisher = pubsub_v1.PublisherClient()
+topic_path = publisher.topic_path("magicfeedback-prod-api", "request-done")
+publisher.publish(topic_path, json.dumps(message).encode("utf-8")).result()
 ```
 
 ## Logging

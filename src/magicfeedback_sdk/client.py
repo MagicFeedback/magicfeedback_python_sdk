@@ -108,3 +108,10 @@ class MagicFeedback:
         )
         self.headers["Authorization"] = f"Bearer {self.api_key}"
         return self.api_key
+
+
+# The company was renamed MagicFeedback -> Deepdots. ``Deepdots`` is the
+# forward-looking name for this client; ``MagicFeedback`` remains the defining
+# name so existing tracebacks and reprs are unchanged. Both refer to the same
+# class object, so isinstance() and subclassing behave identically either way.
+Deepdots = MagicFeedback
