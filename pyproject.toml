@@ -1,10 +1,10 @@
 [project]
-name = "MagicFeedback"
-version = "1.0.18"
+name = "magicfeedback"
+version = "1.0.19"
 authors = [
   { name="Francisco Arias", email="farias@magicfeedback.io" },
 ]
-description = "SDK for MagicFeedback API"
+description = "SDK for the Deepdots API (formerly MagicFeedback)"
 readme = "README.md"
 requires-python = ">=3.8"
 # Must be kept in sync with setup.py's install_requires. When this [project]

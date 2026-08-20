@@ -9,14 +9,14 @@ if [ -z "$VERSION" ]; then
     echo "error: could not read version from pyproject.toml" >&2
     exit 1
 fi
-echo "==> publishing MagicFeedback $VERSION"
+echo "==> publishing magicfeedback $VERSION"
 
 # Fail early if this version is already on PyPI. Uploads are irreversible — a
 # published filename can never be reused — so the fix is always to bump the
 # version, never to retry. (This replaces the old --skip-existing flag, which
 # hid exactly this mistake by silently doing nothing.)
-if curl -sf "https://pypi.org/pypi/MagicFeedback/$VERSION/json" >/dev/null; then
-    echo "error: MagicFeedback $VERSION is already published on PyPI." >&2
+if curl -sf "https://pypi.org/pypi/magicfeedback/$VERSION/json" >/dev/null; then
+    echo "error: magicfeedback $VERSION is already published on PyPI." >&2
     echo "       Bump the version in pyproject.toml and setup.py first." >&2
     exit 1
 fi

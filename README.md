@@ -5,21 +5,29 @@ Python SDK for the Deepdots API (the company was formerly called MagicFeedback).
 ## Installation
 
 ```bash
-pip install MagicFeedback
+pip install deepdots
 ```
 
-> Note: the distribution name on PyPI is `MagicFeedback`; the import name is
-> either `deepdots_sdk` (current) or `magicfeedback_sdk` (original).
+The original distribution is still published and still works:
 
-## Naming: `deepdots_sdk` and `magicfeedback_sdk`
+```bash
+pip install magicfeedback
+```
 
-MagicFeedback was renamed **Deepdots**. Both names work and refer to the *same*
-objects, so **no existing code needs to change**:
+## Naming
+
+MagicFeedback was renamed **Deepdots**. Both sets of names work and refer to the
+*same* objects, so **no existing code needs to change**:
 
 | | Current name | Original name |
 |---|---|---|
+| PyPI distribution | `deepdots` | `magicfeedback` |
 | Import package | `deepdots_sdk` | `magicfeedback_sdk` |
 | Client class | `Deepdots` | `MagicFeedback` |
+
+Distribution names are written lowercase throughout — that is the packaging
+convention, and PyPI treats names case-insensitively anyway, so
+`pip install MagicFeedback` keeps working for anyone who has it written that way.
 
 `deepdots_sdk` re-exports `magicfeedback_sdk` module by module, and `Deepdots`
 is the same class object as `MagicFeedback` — `MagicFeedback is Deepdots` is

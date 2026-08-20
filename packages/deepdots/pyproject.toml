@@ -1,4 +1,4 @@
-# Bridge distribution: `pip install deepdots` installs the MagicFeedback
+# Bridge distribution: `pip install deepdots` installs the magicfeedback
 # distribution, which is what actually ships the `deepdots_sdk` package.
 #
 # MagicFeedback was renamed Deepdots. PyPI has no concept of an alias for a
@@ -14,11 +14,11 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "deepdots"
-version = "1.0.18"
+version = "1.0.19"
 authors = [
   { name="Francisco Arias", email="farias@deepdots.com" },
 ]
-description = "Deepdots Python SDK — installs MagicFeedback, which provides the deepdots_sdk package"
+description = "Deepdots Python SDK — installs magicfeedback, which provides the deepdots_sdk package"
 readme = "README.md"
 requires-python = ">=3.8"
 license = "MIT"
@@ -27,7 +27,7 @@ license-files = ["LICENCE"]
 # republishing on every SDK release. 1.0.18 is the first version shipping the
 # deepdots_sdk package name.
 dependencies = [
-    "MagicFeedback>=1.0.18",
+    "magicfeedback>=1.0.18",
 ]
 classifiers = [
     "Programming Language :: Python :: 3",

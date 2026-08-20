@@ -4,7 +4,7 @@ set -euo pipefail
 # Publishes the `deepdots` bridge distribution (packages/deepdots), NOT the SDK
 # itself. The SDK is published by ./publish.sh.
 #
-# The bridge only declares a dependency on MagicFeedback, so it rarely needs
+# The bridge only declares a dependency on magicfeedback, so it rarely needs
 # republishing — only when its own metadata changes, or when the minimum SDK
 # version it requires moves.
 
@@ -17,7 +17,7 @@ if [ -z "$VERSION" ]; then
     echo "error: could not read version from $BRIDGE_DIR/pyproject.toml" >&2
     exit 1
 fi
-echo "==> publishing deepdots $VERSION (bridge -> MagicFeedback)"
+echo "==> publishing deepdots $VERSION (bridge -> magicfeedback)"
 
 # Fail early if already published: uploads are irreversible, so the fix is
 # always to bump the version rather than retry.

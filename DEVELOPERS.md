@@ -35,13 +35,13 @@ the same objects. There are three independent layers:
 
 | Layer | Current name | Original name |
 |---|---|---|
-| PyPI distribution | `deepdots` | `MagicFeedback` |
+| PyPI distribution | `deepdots` | `magicfeedback` |
 | Import package | `deepdots_sdk` | `magicfeedback_sdk` |
 | Client class | `Deepdots` | `MagicFeedback` |
 
-`pip install deepdots` and `pip install MagicFeedback` both end up installing
+`pip install deepdots` and `pip install magicfeedback` both end up installing
 the same code — `deepdots` is a metadata-only bridge that depends on
-`MagicFeedback`, which is the distribution that actually ships both import
+`magicfeedback`, which is the distribution that actually ships both import
 packages.
 
 ### Rule when adding a module
@@ -120,7 +120,7 @@ you only want a quick check, run the two unit files.
 ### Do you also need to republish the bridge?
 
 Usually **no**. `packages/deepdots/pyproject.toml` declares
-`MagicFeedback>=1.0.18`, a lower bound rather than a pin, so `pip install
+`magicfeedback>=1.0.18`, a lower bound rather than a pin, so `pip install
 deepdots` always resolves to the newest SDK without the bridge being touched.
 
 Republish it (with `./publish_deepdots.sh`, after bumping its own version) only
@@ -157,10 +157,17 @@ SDK. Keep the two in sync, or delete `setup.py`.
 bdist_wheel` and uploads `dist/*` to TestPyPI, which is exactly the pattern
 `publish.sh` was fixed to avoid. Don't copy from it.
 
-**Distribution names ignore case but not separators.** `pip install
-magicfeedback`, `MagicFeedback` and `MAGICFEEDBACK` all work — PyPI normalises
-case (PEP 503). But `Magic-Feedback` does *not*: an added hyphen makes it a
+**Write distribution names lowercase.** `magicfeedback` and `deepdots`, never
+`MagicFeedback`. This is the packaging convention, and mixing the two styles was
+a recurring source of confusion. It is purely cosmetic: PyPI normalises case
+(PEP 503), so `pip install magicfeedback`, `MagicFeedback` and `MAGICFEEDBACK`
+all resolve to the same project, and the built wheel filename has always been
+lowercase regardless. Note the normalisation covers case but *not* separators —
+`pip install Magic-Feedback` fails, because the added hyphen makes it a
 different name entirely.
+
+Python class names are unaffected: `MagicFeedback` and `Deepdots` stay
+CamelCase, because they are Python identifiers, not distribution names.
 
 **`dist/` is no longer wiped.** `publish.sh` uploads only the current version's
 files, so old local builds accumulate there harmlessly. The directory is

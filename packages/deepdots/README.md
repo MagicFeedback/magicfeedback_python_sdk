@@ -1,7 +1,7 @@
 # Deepdots Python SDK
 
 `deepdots` is the Deepdots name for the Python SDK formerly published as
-**MagicFeedback**. Installing it pulls in the `MagicFeedback` distribution,
+**magicfeedback**. Installing it pulls in the `magicfeedback` distribution,
 which ships the actual code.
 
 ```bash
