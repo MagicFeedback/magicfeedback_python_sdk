@@ -73,9 +73,12 @@ python3 -m twine upload --repository pypi "${ARTIFACTS[@]}" "$@"
 # genuinely shipped. Branches move; a tag does not, which is why the tag rather
 # than the branch is the durable record of a release.
 git tag -a "$TAG" -m "magicfeedback $VERSION"
-if git push origin "$TAG"; then
+# Pushed as refs/tags/... explicitly: version branches share their name with
+# the release tag (branch v1.0.20, tag v1.0.20), and a bare name would be
+# ambiguous — git refuses with "matches more than one".
+if git push origin "refs/tags/$TAG"; then
     echo "==> tagged $TAG"
 else
     echo "warning: $VERSION is published but pushing tag $TAG failed." >&2
-    echo "         Retry with: git push origin $TAG" >&2
+    echo "         Retry with: git push origin refs/tags/$TAG" >&2
 fi
