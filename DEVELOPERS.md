@@ -153,7 +153,16 @@ git checkout v1.0.19
    really shipped". If the upload works but the tag push fails, the script says
    so and tells you the command to retry — the release itself is fine.
 
-6. **Open a PR into `main`.** `main` is a protected branch — direct pushes are
+6. **Add a changelog entry.** The public changelog lives in the separate
+   [Deepdots-Documentation](https://github.com/MagicFeedback/Deepdots-Documentation)
+   repo, at `src/content/docs/{,es/,da/}python-sdk/reference/changelog.md` —
+   one file per locale, all three need the entry. Dates there are PyPI
+   publication dates.
+
+   The docs deliberately carry no pinned version anywhere else, so this page is
+   the only place a release number needs writing down.
+
+7. **Open a PR into `main`.** `main` is a protected branch — direct pushes are
    rejected, so the merge must go through a pull request.
 
 ### Do you also need to republish the bridge?
