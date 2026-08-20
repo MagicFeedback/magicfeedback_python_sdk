@@ -87,6 +87,37 @@ login`):
 `./test.sh` runs everything, so it will fail without credentials. In CI, or when
 you only want a quick check, run the two unit files.
 
+## Branches and tags
+
+**Tags are the record of what shipped. Branches are where work happens.**
+
+Every release is tagged, and the publish scripts create the tag for you — you
+never tag by hand:
+
+| Tag | Marks |
+|---|---|
+| `v1.0.19` | the commit published as `magicfeedback` 1.0.19 |
+| `deepdots-v1.0.19` | the commit published as the `deepdots` bridge 1.0.19 |
+
+The two are namespaced separately because the SDK and the bridge are versioned
+independently.
+
+Work happens on a branch named after the version being prepared (`v1.0.20`).
+Note that a branch is *not* a reliable record of a release: it keeps moving as
+work lands on it. `v1.0.18` is the cautionary example — 1.0.19 was cut from the
+same branch, so its tip no longer contains the code that shipped as 1.0.18. A
+tag cannot drift like that, which is why the tag is what you trust when you need
+to know exactly what a released version contained.
+
+Tags start at 1.0.19; earlier releases predate this convention and are not
+tagged.
+
+To check out exactly what a version shipped:
+
+```bash
+git checkout v1.0.19
+```
+
 ## Releasing a new SDK version
 
 1. **Bump the version in both files.** `pyproject.toml` and `setup.py` each
@@ -105,16 +136,24 @@ you only want a quick check, run the two unit files.
 
 3. **Run the tests.**
 
-4. **Publish:**
+4. **Commit everything.** `publish.sh` refuses to run against a dirty working
+   tree, because the tag it creates has to match the code that goes to PyPI.
+
+5. **Publish:**
 
    ```bash
    ./publish.sh
    ```
 
-   The script builds sdist + wheel and uploads only that version's two files. It
-   refuses to run if the version is already on PyPI.
+   The script builds sdist + wheel, uploads only that version's two files, then
+   tags the commit `vX.Y.Z` and pushes the tag. It refuses to run if the version
+   is already on PyPI, or if the tag already exists locally or on origin.
 
-5. **Open a PR into `main`.** `main` is a protected branch — direct pushes are
+   The tag is created *after* the upload succeeds, so a tag always means "this
+   really shipped". If the upload works but the tag push fails, the script says
+   so and tells you the command to retry — the release itself is fine.
+
+6. **Open a PR into `main`.** `main` is a protected branch — direct pushes are
    rejected, so the merge must go through a pull request.
 
 ### Do you also need to republish the bridge?

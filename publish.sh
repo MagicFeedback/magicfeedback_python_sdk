@@ -11,6 +11,23 @@ if [ -z "$VERSION" ]; then
 fi
 echo "==> publishing magicfeedback $VERSION"
 
+TAG="v$VERSION"
+
+# The release tag must point at the code that actually goes to PyPI, so refuse
+# to publish from a tree with uncommitted changes.
+if [ -n "$(git status --porcelain)" ]; then
+    echo "error: the working tree has uncommitted changes." >&2
+    echo "       Commit them first — the $TAG tag must match what is published." >&2
+    exit 1
+fi
+
+# Check the tag up front rather than after an irreversible upload.
+if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null 2>&1 \
+   || git ls-remote --exit-code --tags origin "$TAG" >/dev/null 2>&1; then
+    echo "error: tag $TAG already exists locally or on origin." >&2
+    exit 1
+fi
+
 # Fail early if this version is already on PyPI. Uploads are irreversible — a
 # published filename can never be reused — so the fix is always to bump the
 # version, never to retry. (This replaces the old --skip-existing flag, which
@@ -51,3 +68,14 @@ printf '    %s\n' "${ARTIFACTS[@]}"
 
 # Extra args (e.g. --verbose) are forwarded to twine.
 python3 -m twine upload --repository pypi "${ARTIFACTS[@]}" "$@"
+
+# Tag only now: the upload is the irreversible step, so the tag records what
+# genuinely shipped. Branches move; a tag does not, which is why the tag rather
+# than the branch is the durable record of a release.
+git tag -a "$TAG" -m "magicfeedback $VERSION"
+if git push origin "$TAG"; then
+    echo "==> tagged $TAG"
+else
+    echo "warning: $VERSION is published but pushing tag $TAG failed." >&2
+    echo "         Retry with: git push origin $TAG" >&2
+fi

@@ -19,6 +19,22 @@ if [ -z "$VERSION" ]; then
 fi
 echo "==> publishing deepdots $VERSION (bridge -> magicfeedback)"
 
+# Namespaced so it never collides with the SDK's own vX.Y.Z tags: the bridge
+# and the SDK are versioned independently.
+TAG="deepdots-v$VERSION"
+
+if [ -n "$(git status --porcelain)" ]; then
+    echo "error: the working tree has uncommitted changes." >&2
+    echo "       Commit them first — the $TAG tag must match what is published." >&2
+    exit 1
+fi
+
+if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null 2>&1 \
+   || git ls-remote --exit-code --tags origin "$TAG" >/dev/null 2>&1; then
+    echo "error: tag $TAG already exists locally or on origin." >&2
+    exit 1
+fi
+
 # Fail early if already published: uploads are irreversible, so the fix is
 # always to bump the version rather than retry.
 if curl -sf "https://pypi.org/pypi/deepdots/$VERSION/json" >/dev/null; then
@@ -63,3 +79,11 @@ echo "==> uploading:"
 printf '    %s\n' "${ARTIFACTS[@]}"
 
 python3 -m twine upload --repository pypi "${ARTIFACTS[@]}" "$@"
+
+git tag -a "$TAG" -m "deepdots bridge $VERSION"
+if git push origin "$TAG"; then
+    echo "==> tagged $TAG"
+else
+    echo "warning: $VERSION is published but pushing tag $TAG failed." >&2
+    echo "         Retry with: git push origin $TAG" >&2
+fi
