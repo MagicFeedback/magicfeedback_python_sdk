@@ -1,0 +1,44 @@
+# Bridge distribution: `pip install deepdots` installs the MagicFeedback
+# distribution, which is what actually ships the `deepdots_sdk` package.
+#
+# MagicFeedback was renamed Deepdots. PyPI has no concept of an alias for a
+# distribution name, so making the new name installable requires publishing a
+# second distribution. This one deliberately contains NO Python modules — it
+# exists only to point at the real one, so there is no code to keep in sync.
+#
+# Build and publish it from this directory, not from the repo root:
+#     ./publish_deepdots.sh
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "deepdots"
+version = "1.0.18"
+authors = [
+  { name="Francisco Arias", email="farias@magicfeedback.io" },
+]
+description = "Deepdots Python SDK — installs MagicFeedback, which provides the deepdots_sdk package"
+readme = "README.md"
+requires-python = ">=3.8"
+license = "MIT"
+license-files = ["LICENCE"]
+# Intentionally a lower bound, not a pin: this bridge does not need
+# republishing on every SDK release. 1.0.18 is the first version shipping the
+# deepdots_sdk package name.
+dependencies = [
+    "MagicFeedback>=1.0.18",
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+]
+
+[project.urls]
+Homepage = "https://github.com/MagicFeedback/magicfeedback_python_sdk"
+Issues = "https://github.com/MagicFeedback/magicfeedback_python_sdk/issues"
+
+# Metadata-only distribution: no packages, no modules. Without this, setuptools
+# auto-discovery would scan this directory looking for something to package.
+[tool.setuptools]
+packages = []
