@@ -200,6 +200,11 @@ client.set_logging(logging.DEBUG)
 
 MIT
 
+## Contributing
+
+Developing on the SDK itself — layout, tests, and how to cut a release — is
+documented in [DEVELOPERS.md](DEVELOPERS.md).
+
 ## Contact
 
 farias@magicfeedback.io
