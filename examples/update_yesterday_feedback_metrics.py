@@ -55,8 +55,11 @@ def main():
         feedback_id = fb["id"]
         existing_metrics = list(fb.get("metrics") or [])
 
-        # Keep one "Test" entry with the new value, remove any duplicates
-        new_value = random.randint(0, 100)
+        # Keep one "Test" entry with the new value, remove any duplicates.
+        # `value` must be a list (the API stores metric values as
+        # array<string>); the SDK also normalizes a bare scalar for you, but
+        # sending the list form directly avoids relying on that.
+        new_value = [str(random.randint(0, 100))]
         updated_metrics = [m for m in existing_metrics if m.get("key") != "Test"]
         updated_metrics.append({"key": "Test", "value": new_value})
 

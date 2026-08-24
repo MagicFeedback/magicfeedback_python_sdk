@@ -58,7 +58,7 @@ def main():
         updated_metadata.append({"key": "Test", "value": new_value})
 
         result = client.feedbacks.update(feedback_id, {"metadata": updated_metadata, "status": "REGISTERED"})
-        print(f"  [{feedback_id}] metadata 'Test' added → {new_entry['value']}")
+        print(f"  [{feedback_id}] metadata 'Test' added → {new_value}")
 
 
 if __name__ == "__main__":

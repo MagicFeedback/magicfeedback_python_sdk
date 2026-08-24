@@ -111,8 +111,18 @@ Helper methods:
 - `get(filter=None)` — lists feedback items.
 - `get_id(feedback_id, filter=None)` — retrieves a specific feedback item.
 - `update(feedback_id, feedback)` — updates a feedback item.
+
+`create`, `update`, `get` and `get_id` all normalize the `answers`,
+`metadata`, `metrics` and `profile` fields: each entry is `{"key": ...,
+"value": ...}`, and the raw API is inconsistent about `value`'s shape — the
+same feedback can have one entry with a bare scalar (`"value": "voice"`) next
+to another with a list (`"value": ["sln"]`). The SDK wraps every bare scalar
+as `[value]`, both on what it sends (create/update) and on what it returns
+(get/get_id), so callers only ever see/send the list form. `questions` is a
+different shape (`title`/`ref`/`position`/...) and is left untouched; `data`
+is not currently normalized.
 - `delete(feedback_id)` — deletes a feedback item.
-- `upload_attachment(feedback_id, file_path, filename=None, extra_data=None)` — uploads a file and attaches it to a feedback.
+- `upload_attachment(feedback_id, file_path, filename=None, extra_data=None, max_attachments=3, check_duplicate_content=True)` — uploads a file and attaches it to a feedback. Before uploading it fetches the feedback's existing attachments and enforces two guards (nothing is uploaded if either trips): a **maximum of `max_attachments` files** (default 3) per feedback, and **no duplicate content** — the new file's bytes are SHA-256 hashed and compared against each existing attachment by *content*, not filename, so re-attaching the same file under a different name raises `ValueError`. The duplicate check downloads each existing attachment to hash it (best-effort — attachments it cannot download, e.g. a private bucket returning 403, are skipped); pass `check_duplicate_content=False` to disable it. The cap fails **closed**: if the feedback's current attachments can't be fetched, the upload is refused rather than risk exceeding the limit.
 
 ### `client.contacts`
 - `create(contact)`, `get(filter=None)`, `update(contact_id, contact)`, `delete(contact_id)`
@@ -169,12 +179,17 @@ client.feedbacks.get_id(
     filter={"include": [{"relation": "feedbackAttachments"}]}
 )
 
-# Upload a file attachment
+# Upload a file attachment.
+# A feedback holds at most 3 attachments, and a file whose bytes are identical
+# to one already attached (even under a different name) is rejected with a
+# ValueError — nothing is uploaded in either case.
 client.feedbacks.upload_attachment(
     "<feedback_id>",
     file_path="/path/to/file.pdf",
-    filename="report.pdf",          # optional, defaults to file name
-    extra_data={"source": "crm"}    # optional, any JSON-serialisable dict
+    filename="report.pdf",              # optional, defaults to file name
+    extra_data={"source": "crm"},       # optional, any JSON-serialisable dict
+    # max_attachments=3,                # optional, override the per-feedback cap
+    # check_duplicate_content=False,    # optional, skip the byte-for-byte dedupe
 )
 
 # Mark a request DONE via the request-done Pub/Sub topic.
