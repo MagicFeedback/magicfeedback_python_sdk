@@ -1,18 +1,42 @@
 [project]
-name = "MagicFeedback"
-version = "0.0.2"
+name = "magicfeedback"
+version = "1.0.19"
 authors = [
-  { name="Francisco Arias", email="farias@magicfedback.io" },
+  { name="Francisco Arias", email="farias@magicfeedback.io" },
 ]
-description = "SDK for MagicFeedback API"
+description = "SDK for the Deepdots API (formerly MagicFeedback)"
 readme = "README.md"
 requires-python = ">=3.8"
+# Must be kept in sync with setup.py's install_requires. When this [project]
+# table is present, setuptools uses it for metadata and IGNORES setup.py's
+# install_requires, so dependencies declared only there never reach the built
+# wheel (that was the case up to 1.0.16 — the published wheels had no
+# Requires-Dist). google-cloud-datastore>=2.16.0 is required for the named
+# `database=` kwarg the Datastore-first auth relies on.
+dependencies = [
+    "requests>=2.0.0",
+    "google-cloud-pubsub>=2.0.0",
+    "google-cloud-datastore>=2.16.0",
+]
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
 
+# src-layout with TWO top-level packages: `magicfeedback_sdk` (the implementation)
+# and `deepdots_sdk` (re-export mirror under the new company name). Declared
+# explicitly so both are guaranteed to ship in the wheel rather than relying on
+# setuptools auto-discovery.
+[tool.setuptools.packages.find]
+where = ["src"]
+
 [project.urls]
 Homepage = "https://github.com/MagicFeedback/magicfeedback_python_sdk"
 Issues = "https://github.com/MagicFeedback/magicfeedback_python_sdk/issues"
+
+[tool.pytest.ini_options]
+# src-layout project: put src/ on sys.path so tests import the working tree
+# (not a stale installed build) without requiring `pip install -e .`.
+pythonpath = ["src"]
+testpaths = ["tests"]

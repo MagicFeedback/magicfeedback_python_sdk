@@ -3,16 +3,16 @@ import pytest
 from magicfeedback_sdk import MagicFeedback
 
 
-def test_create_feedback(client):
-    """Tests creating a new feedback item."""
+def test_create_feedback_with_answer_wrapping(client):
+    """Tests creating a new feedback item and ensures answers.value is wrapped in a list if not already."""
 
     feedback_data = {
         "name": "Test SDK Feedback",
         "type": "APP",
         "identity": "MAGICFORM",
         "answers": [
-            {"key": "name", "value": "John Doe"},
-            {"key": "comment", "value": "This is a test comment."}
+            {"key": "name", "value": "John Doe"},  # Single value (should be wrapped)
+            {"key": "comment", "value": ["This is a test comment."]}  # Already a list
         ],
         "questions": [
             {
@@ -38,7 +38,11 @@ def test_create_feedback(client):
     assert "id" in response
     # Check if the created feedback has the correct name
     assert response["name"] == "Test SDK Feedback"
-    
+
+    # Validate answers are properly wrapped
+    for answer in feedback_data["answers"]:
+        assert isinstance(answer["value"], list), f"Answer value for key '{answer['key']}' is not a list."
+
 @pytest.fixture
 def client():
     """Provides a MagicFeedbackClient instance for testing."""
