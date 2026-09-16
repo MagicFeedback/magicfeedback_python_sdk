@@ -111,6 +111,7 @@ Helper methods:
 - `get(filter=None)` — lists feedback items.
 - `get_id(feedback_id, filter=None)` — retrieves a specific feedback item.
 - `update(feedback_id, feedback)` — updates a feedback item.
+- `update_metadata_batch(items)` — replaces the metadata of **many feedbacks in one request** and triggers re-analysis for each, so the change propagates through the analysis pipeline to BigQuery (`insight.metadata`) and the metadata table. `items` is a list of `{"feedbackId": ..., "metadata": [{"name": ..., "values": [...]}]}`; each metadata entry may use the SDK-native `{"key": ..., "value": ...}` shape instead, and a bare scalar value is wrapped into a list. Per feedback the metadata array is **replaced** wholesale (an empty `metadata` list clears it). Feedbacks not listed are untouched. Best-effort per feedback: one failure does not abort the rest. Returns e.g. `{"feedbacks": N, "triggered": M, "failed": [...]}`.
 
 `create`, `update`, `get` and `get_id` all normalize the `answers`,
 `metadata`, `metrics` and `profile` fields: each entry is `{"key": ...,

@@ -35,6 +35,34 @@ def _normalize_pair_values(feedback):
                 pair["value"] = [pair["value"]]
 
 
+def _normalize_metadata_item(item):
+    """Normalize one ``update_metadata_batch`` entry to the API's shape.
+
+    The batch endpoint expects ``{"feedbackId": str, "metadata": [{"name",
+    "values"}]}``. For convenience each metadata entry may instead use the
+    SDK-native ``{"key", "value"}`` pair shape, and a bare scalar ``values``/
+    ``value`` is wrapped into a single-item list (mirroring
+    ``_normalize_pair_values``). Names are trimmed but NOT lowercased, so this
+    stays behaviorally identical to the single ``PUT /feedback/{id}/metadata``
+    endpoint it batches. Raises ``ValueError`` if ``feedbackId`` is missing.
+    """
+    feedback_id = item.get("feedbackId") or item.get("feedback_id")
+    if not feedback_id:
+        raise ValueError("Each metadata batch item requires a 'feedbackId'")
+
+    normalized = []
+    for entry in item.get("metadata") or []:
+        name = entry.get("name", entry.get("key"))
+        if isinstance(name, str):
+            name = name.strip()
+        values = entry.get("values", entry.get("value"))
+        if not isinstance(values, list):
+            values = [] if values in (None, "") else [values]
+        normalized.append({"name": name, "values": values})
+
+    return {"feedbackId": feedback_id, "metadata": normalized}
+
+
 class FeedbackAPI:
     def __init__(self, base_url, headers, logger):
         self.base_url = base_url
@@ -76,6 +104,31 @@ class FeedbackAPI:
         url = f"{self.base_url}/feedbacks/{feedback_id}"
         _normalize_pair_values(feedback)
         return make_request("PATCH", url, self.headers, json=feedback, logger=self.logger)
+
+    def update_metadata_batch(self, items):
+        """Replace the inline metadata of many feedbacks and trigger re-analysis.
+
+        For each feedback the metadata array is REPLACED wholesale (an empty
+        list clears it); the feedback is patched and re-queued, and the analysis
+        pipeline regenerates it — propagating the change to BigQuery
+        ``insight.metadata`` and the ``feedbackmetadata`` table. This targets the
+        feedback's inline metadata (the store re-analysis republishes), not the
+        normalized metadata table directly. Feedbacks not listed are untouched.
+
+        Best-effort per feedback: one failure does not abort the rest.
+
+        :param items: list of ``{"feedbackId": str, "metadata": [{"name",
+            "values"}]}``. Each metadata entry may use the SDK-native
+            ``{"key", "value"}`` shape instead, and a bare scalar value is
+            wrapped into a single-item list.
+        :returns: the API summary, e.g.
+            ``{"feedbacks": N, "triggered": M, "failed": [...]}``.
+        """
+        url = f"{self.base_url}/feedbacks/metadata/batch"
+        payload = {
+            "items": [_normalize_metadata_item(item) for item in (items or [])]
+        }
+        return make_request("POST", url, self.headers, json=payload, logger=self.logger)
 
     def delete(self, feedback_id):
         url = f"{self.base_url}/feedbacks/{feedback_id}"
