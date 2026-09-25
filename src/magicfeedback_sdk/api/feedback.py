@@ -105,29 +105,46 @@ class FeedbackAPI:
         _normalize_pair_values(feedback)
         return make_request("PATCH", url, self.headers, json=feedback, logger=self.logger)
 
-    def update_metadata_batch(self, items):
-        """Replace the inline metadata of many feedbacks and trigger re-analysis.
+    def update_metadata_batch(self, items, mode=None):
+        """Merge metadata into many feedbacks and trigger re-analysis.
 
-        For each feedback the metadata array is REPLACED wholesale (an empty
-        list clears it); the feedback is patched and re-queued, and the analysis
-        pipeline regenerates it — propagating the change to BigQuery
-        ``insight.metadata`` and the ``feedbackmetadata`` table. This targets the
-        feedback's inline metadata (the store re-analysis republishes), not the
-        normalized metadata table directly. Feedbacks not listed are untouched.
+        Additive (upsert by key): for each feedback the keys you send are added,
+        or their values overwritten if the key already exists; every other
+        existing key is KEPT. Nothing is ever deleted — omitting a key leaves it
+        untouched, and an item with no metadata is a no-op. With
+        ``mode="append"`` the values you send are added to the ones the key
+        already holds instead of overwriting them, skipping any it holds
+        already: use it for an event-log key such as ``deepdots_message``,
+        which the default would wipe. The feedback is patched and re-queued
+        (one full analysis run per feedback), and the analysis pipeline
+        regenerates it — propagating the change to BigQuery ``insight.metadata``
+        and the ``feedbackmetadata`` table. This targets the feedback's inline
+        metadata (the store re-analysis republishes), not the normalized
+        metadata table.
 
-        Best-effort per feedback: one failure does not abort the rest.
+        The feedback ids are checked first, all or nothing: if any of them does
+        not exist, is deprecated or belongs to a company you cannot see, the API
+        answers 404 naming them, nothing is written, and this raises
+        ``requests.HTTPError``. Only a failure writing or re-queuing one
+        feedback is reported in ``failed`` without stopping the rest.
 
         :param items: list of ``{"feedbackId": str, "metadata": [{"name",
             "values"}]}``. Each metadata entry may use the SDK-native
             ``{"key", "value"}`` shape instead, and a bare scalar value is
             wrapped into a single-item list.
+        :param mode: ``"merge"`` (what the API does when omitted) or
+            ``"append"``.
         :returns: the API summary, e.g.
             ``{"feedbacks": N, "triggered": M, "failed": [...]}``.
         """
+        if mode not in (None, "merge", "append"):
+            raise ValueError("mode must be 'merge' or 'append'")
         url = f"{self.base_url}/feedbacks/metadata/batch"
         payload = {
             "items": [_normalize_metadata_item(item) for item in (items or [])]
         }
+        if mode is not None:
+            payload["mode"] = mode
         return make_request("POST", url, self.headers, json=payload, logger=self.logger)
 
     def delete(self, feedback_id):

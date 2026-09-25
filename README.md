@@ -108,10 +108,10 @@ Helper methods:
 
 ### `client.feedbacks`
 - `create(feedback)` — creates a new feedback item. Required fields: `name`, `type`, `identity`, `integrationId`, `companyId`, `productId`.
-- `get(filter=None)` — lists feedback items.
+- `get(filter=None)` — lists feedback items. To find the feedback an SDK session became, filter on the `sessionId` that `POST /sdk/feedback` returned: `get(filter={"where": {"sdkSessionId": session_id}, "order": ["createdAt DESC"]})`. Set only on feedbacks created after the field shipped; a session completed twice yields two feedbacks with the same id, newest first.
 - `get_id(feedback_id, filter=None)` — retrieves a specific feedback item.
 - `update(feedback_id, feedback)` — updates a feedback item.
-- `update_metadata_batch(items)` — replaces the metadata of **many feedbacks in one request** and triggers re-analysis for each, so the change propagates through the analysis pipeline to BigQuery (`insight.metadata`) and the metadata table. `items` is a list of `{"feedbackId": ..., "metadata": [{"name": ..., "values": [...]}]}`; each metadata entry may use the SDK-native `{"key": ..., "value": ...}` shape instead, and a bare scalar value is wrapped into a list. Per feedback the metadata array is **replaced** wholesale (an empty `metadata` list clears it). Feedbacks not listed are untouched. Best-effort per feedback: one failure does not abort the rest. Returns e.g. `{"feedbacks": N, "triggered": M, "failed": [...]}`.
+- `update_metadata_batch(items)` — merges metadata into **many feedbacks in one request** and triggers re-analysis for each, so the change propagates through the analysis pipeline to BigQuery (`insight.metadata`) and the metadata table. `items` is a list of `{"feedbackId": ..., "metadata": [{"name": ..., "values": [...]}]}`; each metadata entry may use the SDK-native `{"key": ..., "value": ...}` shape instead, and a bare scalar value is wrapped into a list. Semantics are **additive** (upsert by key): the keys you send are added, or their values overwritten if the key already exists — every other existing key is kept, and **nothing is ever deleted** (an item with no metadata is a no-op). Pass `mode="append"` to add the values you send to the ones a key already holds instead of overwriting them (values it holds already are skipped, so a retry adds nothing twice) — use it for event-log keys such as `deepdots_message`, which the default would wipe. Feedbacks not listed are untouched. The feedback ids are checked **all or nothing**: if any does not exist, is deprecated or belongs to a company you cannot see, the API answers **404** naming them and nothing is written (the SDK raises `requests.HTTPError`); only a failure writing or re-queuing one feedback is listed in `failed` while the rest still land. Each updated feedback re-runs the full analysis pipeline. Returns e.g. `{"feedbacks": N, "triggered": M, "failed": [...]}`.
 
 `create`, `update`, `get` and `get_id` all normalize the `answers`,
 `metadata`, `metrics` and `profile` fields: each entry is `{"key": ...,
@@ -127,6 +127,36 @@ is not currently normalized.
 
 ### `client.contacts`
 - `create(contact)`, `get(filter=None)`, `update(contact_id, contact)`, `delete(contact_id)`
+- `upsert(contact)` — **create-or-update** a single contact, matched by `(companyId, email)`, via `POST /crm/contacts/upsert`. Prefer this over `create()` when the record may already exist: `create()` always inserts (there is no unique constraint on email, so it silently makes duplicates), whereas `upsert()` PATCHes the existing ACTIVE contact if one is found. On the update branch scalars are overwritten and `customFields` is **merged** (same additive semantics as `update_fields`); the match key is never rewritten. `name`, `email`, `companyId` are required. Returns the contact after the upsert.
+
+  ```python
+  client.contacts.upsert({
+      "name": "Ada", "email": "ada@example.com", "companyId": "ACME",
+      "customFields": {"loyalty_tier": "gold"},
+  })
+  ```
+- `upsert_batch(items, chunk_size=500)` — upsert **many** contacts via `POST /crm/contacts/upsert/batch`, automatically **chunking** `items` to the server cap (500) so you can pass a list of any length. Sending a batch is the pool-friendly way to do bulk (one sequential request per chunk instead of N parallel calls racing the DB connection pool). Best-effort per item: an item that fails on its own (bad email, inaccessible company, ...) is collected in `failed` and the rest still land. Returns aggregated `{"contacts", "created", "updated", "failed"}`; each `failed` entry's `index` points into the **original** `items` list.
+
+  ```python
+  result = client.contacts.upsert_batch([
+      {"name": "Ada",  "email": "ada@example.com",  "companyId": "ACME", "customFields": {"tier": "gold"}},
+      {"name": "Alan", "email": "alan@example.com", "companyId": "ACME"},
+      # ... pass thousands; the SDK splits them into 500-item requests
+  ])
+  print(result["created"], result["updated"], result["failed"])
+  ```
+- `update_fields(contact_id, custom_fields=None, **native_fields)` — **additively** merge custom fields into a contact via `PATCH /crm/contacts/{id}/fields`. The refs you send are upserted, **every other custom field is kept**, and a value of `None` removes its ref. Prefer this over `update()` for custom fields: `update()` writes the `customFields` object whole, so setting one field there deletes all the others. `custom_fields` values may be `str`/`int`/`float`/`bool`. You may also pass native columns as keywords — `name`, `lastname`, `phone`, `address`, `city`, `state`, `postalCode` — anything else (`email`, `externalId`, `status`, `country`, `type`) is rejected with a 400; use `update()` for those. Returns `{"id": ..., "customFields": {...}}`, the full field set after the merge.
+
+  ```python
+  # Add / overwrite custom fields, keeping any others the contact already has
+  client.contacts.update_fields(contact_id, {"loyalty_tier": "gold", "vip": True})
+
+  # Remove a custom field
+  client.contacts.update_fields(contact_id, {"loyalty_tier": None})
+
+  # Custom fields + a native column in one call
+  client.contacts.update_fields(contact_id, {"nps_segment": "promoter"}, city="Copenhagen")
+  ```
 
 ### `client.campaigns`
 - `create(campaign)`, `get(filter=None)`

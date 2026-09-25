@@ -1,4 +1,4 @@
-"""Unit tests for the batch metadata replace: FeedbackAPI.update_metadata_batch
+"""Unit tests for the batch metadata merge: FeedbackAPI.update_metadata_batch
 and its _normalize_metadata_item helper.
 
 Pure unit tests — no network, no credentials (make_request is monkeypatched).
@@ -61,7 +61,7 @@ def test_normalize_trims_name_but_does_not_lowercase():
 
 
 def test_normalize_empty_metadata_passes_through():
-    """An empty metadata list is preserved (means 'deprecate all' server-side)."""
+    """An empty metadata list is preserved (a no-op server-side: nothing is deleted)."""
     assert _normalize_metadata_item({"feedbackId": "fb2", "metadata": []}) == {
         "feedbackId": "fb2",
         "metadata": [],
@@ -120,3 +120,28 @@ def test_update_metadata_batch_empty_items(monkeypatch):
 
     _api().update_metadata_batch(None)
     assert captured["json"] == {"items": []}
+
+
+def test_update_metadata_batch_sends_mode_only_when_given(monkeypatch):
+    sent = []
+
+    def fake_make_request(method, url, headers, **kwargs):
+        sent.append(kwargs.get("json"))
+        return {"feedbacks": 1, "triggered": 1, "failed": []}
+
+    monkeypatch.setattr(feedback_module, "make_request", fake_make_request)
+    item = {"feedbackId": "fb1", "metadata": [{"key": "deepdots_message", "value": "{}"}]}
+
+    _api().update_metadata_batch([item], mode="append")
+    _api().update_metadata_batch([item])
+
+    assert sent[0]["mode"] == "append"
+    assert "mode" not in sent[1]
+
+
+def test_update_metadata_batch_rejects_unknown_mode(monkeypatch):
+    monkeypatch.setattr(
+        feedback_module, "make_request", lambda *a, **k: pytest.fail("must not send")
+    )
+    with pytest.raises(ValueError):
+        _api().update_metadata_batch([{"feedbackId": "fb1"}], mode="replace")
