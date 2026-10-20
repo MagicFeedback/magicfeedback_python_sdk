@@ -11,7 +11,7 @@ For SDK *usage*, see [README.md](README.md).
 |---|---|
 | Install for development | `./setup.sh` (`pip install -e .`) |
 | Run all tests | `./test.sh` |
-| Run only tests needing no credentials | `pytest tests/test_deepdots_alias.py tests/test_request_done_message.py` |
+| Run only tests needing no credentials | see [Tests](#tests) |
 | Build locally | `./build.sh` |
 | Publish the SDK to PyPI | `./publish.sh` |
 | Publish the `deepdots` bridge | `./publish_deepdots.sh` |
@@ -70,22 +70,39 @@ directly — no `pip install -e .` needed to run the suite.
 
 Two kinds of tests live here, and the difference matters:
 
-**Unit tests** — no network, no credentials, safe to run anywhere:
+**Unit tests** — no network, no credentials, safe to run anywhere. The API
+calls are monkeypatched (`make_request`, the Datastore lookup, the Identity
+Platform login):
 
-- `tests/test_deepdots_alias.py`
-- `tests/test_request_done_message.py`
+- `test_deepdots_alias.py`, `test_request_done_message.py`,
+  `test_datastore_token.py`, `test_feedback_attachments.py`,
+  `test_feedback_metadata_batch.py`, `test_contact_upsert_batch.py`,
+  `test_crm.py`
 
-**Integration tests** — these hit the real API and create real data. They need
-`MF_EMAIL` / `MF_PASSWORD` in `.env`, and the Datastore ones additionally need
-Google Application Default Credentials (`gcloud auth application-default
-login`):
+```bash
+pytest tests/test_deepdots_alias.py tests/test_request_done_message.py \
+       tests/test_datastore_token.py tests/test_feedback_attachments.py \
+       tests/test_feedback_metadata_batch.py tests/test_contact_upsert_batch.py \
+       tests/test_crm.py
+```
+
+**Integration tests** — these hit the real (PROD) API and create real data.
+Each file's `client` fixture passes the shared SDK test account but uses the
+default Datastore-first auth. So with Google Application Default Credentials
+(`gcloud auth application-default login`) the tests run as the cached
+`robot@magicfeedback.io` token, NOT as the test account; only without ADC (or
+with a stale cached token) do they log in as the test account through Identity
+Platform:
 
 - `test_apikey.py`, `test_campaign.py`, `test_contact.py`,
-  `test_datastore_token.py`, `test_feedback_answers_array.py`,
-  `test_feedback_create.py`, `test_integrations_questions.py`
+  `test_feedback_answers_array.py`, `test_feedback_create.py`,
+  `test_integrations_questions.py`
 
-`./test.sh` runs everything, so it will fail without credentials. In CI, or when
-you only want a quick check, run the two unit files.
+`test_feedback_value_normalization.py` is mixed: all of it runs offline except
+`test_create_feedback_with_mixed_metric_value_types`, which hits the API.
+
+`./test.sh` runs everything, so it needs network access to the API. In CI, or
+when you only want a quick check, run the unit files above.
 
 ## Releasing a new SDK version
 

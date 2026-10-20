@@ -1,5 +1,6 @@
 from magicfeedback_sdk.api.campaigns import CampaignsAPI
 from magicfeedback_sdk.api.contacts import ContactsAPI
+from magicfeedback_sdk.api.crm import CrmAPI
 from magicfeedback_sdk.api.feedback import FeedbackAPI
 from magicfeedback_sdk.api.integrations_questions import IntegrationsQuestionsAPI
 from magicfeedback_sdk.api.metrics import MetricsAPI
@@ -81,6 +82,7 @@ class MagicFeedback:
         # APIs
         self.feedbacks = FeedbackAPI(self.base_url, self.headers, self.logger)
         self.contacts = ContactsAPI(self.base_url, self.headers, self.logger)
+        self.crm = CrmAPI(self.base_url, self.headers, self.logger, refresh_token=self.refresh_token)
         self.campaigns = CampaignsAPI(self.base_url, self.headers, self.logger)
         self.metrics = MetricsAPI(self.base_url, self.headers, self.logger)
         self.integrations_questions = IntegrationsQuestionsAPI(self.base_url, self.headers, self.logger)

@@ -107,11 +107,13 @@ Helper methods:
 ## API Reference
 
 ### `client.feedbacks`
-- `create(feedback)` — creates a new feedback item. Required fields: `name`, `type`, `identity`, `integrationId`, `companyId`, `productId`.
-- `get(filter=None)` — lists feedback items. To find the feedback an SDK session became, filter on the `sessionId` that `POST /sdk/feedback` returned: `get(filter={"where": {"sdkSessionId": session_id}, "order": ["createdAt DESC"]})`. Set only on feedbacks created after the field shipped; a session completed twice yields two feedbacks with the same id, newest first.
+- `create(feedback)` — creates a feedback via `POST /feedbacks`. The dict becomes the JSON body with your keys unchanged, so every field is top-level (the SDK's only change is wrapping a scalar `value` into a list, see below). The SDK requires `name`, `type`, `identity`, `integrationId`, `companyId`, `productId` (it raises `ValueError` before sending if one is missing). Use the `identity` of the integration the feedback belongs to: survey identities such as `MAGICFORM`, `MAGICSURVEY` and `CSV` analyse `answers`, while most others, such as `GENERAL` and `CUSTOM`, analyse only `text`, and some accepted values are not analysed at all. Optional fields include `text`, `answers`, `metadata`, `metrics`, `crmContactId` and the source-system fields `external_id`, `externalGeneratedAt`, `externalUpdatedAt` and `externalUrl` — see [Feedback source-system fields](#feedback-source-system-fields). Keys are case-sensitive. A misspelled required key (e.g. `company_id` instead of `companyId`) makes the SDK raise `ValueError: Missing required field: companyId`; any other key the API does not accept is rejected with **422** and nothing is created — a misspelling such as `externalId`, or a server-set field such as `id`, `status` or `createdAt`. When `external_id` matches an existing, non-deleted feedback of the same company, product and integration, the API returns that feedback **unchanged** (HTTP 200, nothing written) instead of creating a duplicate.
+- `get(filter=None)` — lists feedback items. To find the feedback an SDK session became, filter on the `sessionId` that `POST /sdk/feedback` returned: `get(filter={"where": {"sdkSessionId": session_id}, "order": ["createdAt DESC"]})`. Set only on feedbacks created after the field shipped. Since 2026-10-07 a session that closes again updates the feedback it already has, so a session normally maps to one feedback. A session can still have two (one that closed twice between 2026-09-30 and 2026-10-07, or whose first feedback was deleted), so keep the `order` and take the first result.
 - `get_id(feedback_id, filter=None)` — retrieves a specific feedback item.
-- `update(feedback_id, feedback)` — updates a feedback item.
-- `update_metadata_batch(items)` — merges metadata into **many feedbacks in one request** and triggers re-analysis for each, so the change propagates through the analysis pipeline to BigQuery (`insight.metadata`) and the metadata table. `items` is a list of `{"feedbackId": ..., "metadata": [{"name": ..., "values": [...]}]}`; each metadata entry may use the SDK-native `{"key": ..., "value": ...}` shape instead, and a bare scalar value is wrapped into a list. Semantics are **additive** (upsert by key): the keys you send are added, or their values overwritten if the key already exists — every other existing key is kept, and **nothing is ever deleted** (an item with no metadata is a no-op). Pass `mode="append"` to add the values you send to the ones a key already holds instead of overwriting them (values it holds already are skipped, so a retry adds nothing twice) — use it for event-log keys such as `deepdots_message`, which the default would wipe. Feedbacks not listed are untouched. The feedback ids are checked **all or nothing**: if any does not exist, is deprecated or belongs to a company you cannot see, the API answers **404** naming them and nothing is written (the SDK raises `requests.HTTPError`); only a failure writing or re-queuing one feedback is listed in `failed` while the rest still land. Each updated feedback re-runs the full analysis pipeline. Returns e.g. `{"feedbacks": N, "triggered": M, "failed": [...]}`.
+- `update(feedback_id, feedback)` — `PATCH /feedbacks/{id}` with only the fields you pass; returns `{}` (the API answers 204). `external_id`, `type`, `identity`, `integrationId`, `productId`, `profile` and `data` cannot be changed (422), so never PATCH back a whole object read from `get_id()`. The change is saved immediately, but charts and reports pick up changes to the date, `text`, `answers`, `metrics` or `metadata` only when the feedback is re-analysed: include `"status": "REGISTERED"` in the same call to queue a full re-analysis — read what that does at the end of [Feedback source-system fields](#feedback-source-system-fields) first. `update()` needs an API user whose role may update feedback (otherwise **405**).
+- `update_metadata_batch(items, mode=None)` — merges metadata into **many feedbacks in one request** and triggers re-analysis for each, so the change propagates through the analysis pipeline to BigQuery (`insight.metadata`) and the metadata table. `items` is a list of `{"feedbackId": ..., "metadata": [{"name": ..., "values": [...]}]}`; each metadata entry may use the SDK-native `{"key": ..., "value": ...}` shape instead, and a bare scalar value is wrapped into a list. Semantics are **additive** (upsert by key): the keys you send are added, or their values overwritten if the key already exists — every other existing key is kept, and **nothing is ever deleted** (an item with no metadata is a no-op). Pass `mode="append"` to add the values you send to the ones a key already holds instead of overwriting them (values it holds already are skipped, so a retry adds nothing twice) — use it for event-log keys such as `deepdots_message`, which the default would wipe. Feedbacks not listed are untouched. The feedback ids are checked **all or nothing**: if any does not exist, is deprecated or belongs to a company you cannot see, the API answers **404** naming them and nothing is written (the SDK raises `requests.HTTPError`); only a failure writing or re-queuing one feedback is listed in `failed` while the rest still land. Each updated feedback re-runs the full analysis pipeline. Returns e.g. `{"feedbacks": N, "triggered": M, "failed": [...]}`.
+- `delete(feedback_id)` — soft-deletes the feedback: its status becomes `DEPRECATED`, it disappears from `get_id`, dashboards and reports, and from `get` unless your filter's `where` sets `status`; the SDK has no way to restore it. Returns `{}`. A later `create()` with the same `external_id` makes a new feedback.
+- `upload_attachment(feedback_id, file_path, filename=None, extra_data=None, max_attachments=3, check_duplicate_content=True)` — uploads a file and attaches it to a feedback. Before uploading it fetches the feedback's existing attachments and enforces two guards (nothing is uploaded if either trips): a **maximum of `max_attachments` files** (default 3) per feedback, and **no duplicate content** — the new file's bytes are SHA-256 hashed and compared against each existing attachment by *content*, not filename, so re-attaching the same file under a different name raises `ValueError`. The duplicate check downloads each existing attachment to hash it (best-effort — attachments it cannot download, e.g. a private bucket returning 403, are skipped); pass `check_duplicate_content=False` to disable it. The cap fails **closed**: if the feedback's current attachments can't be fetched, the upload is refused rather than risk exceeding the limit.
 
 `create`, `update`, `get` and `get_id` all normalize the `answers`,
 `metadata`, `metrics` and `profile` fields: each entry is `{"key": ...,
@@ -121,9 +123,89 @@ to another with a list (`"value": ["sln"]`). The SDK wraps every bare scalar
 as `[value]`, both on what it sends (create/update) and on what it returns
 (get/get_id), so callers only ever see/send the list form. `questions` is a
 different shape (`title`/`ref`/`position`/...) and is left untouched; `data`
-is not currently normalized.
-- `delete(feedback_id)` — deletes a feedback item.
-- `upload_attachment(feedback_id, file_path, filename=None, extra_data=None, max_attachments=3, check_duplicate_content=True)` — uploads a file and attaches it to a feedback. Before uploading it fetches the feedback's existing attachments and enforces two guards (nothing is uploaded if either trips): a **maximum of `max_attachments` files** (default 3) per feedback, and **no duplicate content** — the new file's bytes are SHA-256 hashed and compared against each existing attachment by *content*, not filename, so re-attaching the same file under a different name raises `ValueError`. The duplicate check downloads each existing attachment to hash it (best-effort — attachments it cannot download, e.g. a private bucket returning 403, are skipped); pass `check_duplicate_content=False` to disable it. The cap fails **closed**: if the feedback's current attachments can't be fetched, the upload is refused rather than risk exceeding the limit.
+is not currently normalized. (`profile` can only be sent with `create()`:
+`update()` rejects it with 422.)
+
+#### Feedback source-system fields
+
+When feedback comes from another system (a helpdesk, a review site, a CSV
+export...), send these optional fields with `create()`. They go at the top
+level, next to `integrationId` and `companyId`, not inside `answers` or
+`metadata`:
+
+| Field | Meaning |
+|---|---|
+| `external_id` | ID of the record in the source system, as a string (`"48213"`, not `48213`). Makes `create()` safe to retry: re-sending an id that already exists for the same company, product and integration returns the existing feedback unchanged and never updates it. Send retries for the same id one after another, not in parallel: two simultaneous requests can both create a feedback. Without it nothing is deduplicated, and a retry creates a second copy. |
+| `externalGeneratedAt` | When the feedback happened in the source system. **This is the date dashboards, reports and date filters use.** If it is omitted, the API stores the time it received the request, so a historical import lands entirely on the import day. |
+| `externalUpdatedAt` | When the record last changed in the source system (defaults to the request time). |
+| `externalUrl` | Link to the original record, shown as the feedback's *Original source* link. |
+
+The casing is mixed: `external_id` is the only snake_case field, and every
+other field is camelCase (`companyId`, not `company_id`).
+
+Send both dates as **UTC ISO 8601 strings ending in `Z`**, e.g.
+`"2026-10-06T11:00:00.000Z"` (JavaScript's `toISOString()` format). The API
+stores any string without checking it, but analytics can only read
+`YYYY-MM-DDTHH:MM:SS[.ffffff]Z`, or `YYYY-MM-DDTHH:MM:SS` with no fraction and
+no zone (charts read it as UTC, but the dashboard's feedback list shows it
+unconverted, as if it were the viewer's local time, so add the `Z`). Any other
+value is still stored, but analytics can't use it, and in `externalGeneratedAt`
+it makes the feedback drop out of date-filtered charts and reports. That
+includes an offset such as `+02:00` (Python's default `isoformat()` of an aware
+datetime), fractional seconds without the `Z` (`isoformat()` of a naive
+datetime that has microseconds, such as `datetime.utcnow()`), more than six
+fractional digits, a date without a time, and a space instead of `T`. The API stores the value as text, so filters and
+sorting compare it as a string. A `datetime` object raises `TypeError` in the
+SDK, and `None` or a number gets a 422.
+
+```python
+from datetime import datetime, timezone
+from zoneinfo import ZoneInfo  # Python 3.9+; on Windows also: pip install tzdata
+
+def to_api_datetime(dt):
+    """Timezone-aware datetime -> '2026-10-06T11:00:00.000Z'."""
+    if dt.utcoffset() is None:
+        raise ValueError("Naive datetime: attach the source time zone first, e.g. dt.replace(tzinfo=ZoneInfo('Europe/Copenhagen'))")
+    return dt.astimezone(timezone.utc).isoformat(timespec="milliseconds").replace("+00:00", "Z")
+```
+
+The helper refuses naive datetimes because `astimezone()` would treat them as
+machine-local time: attach the source zone first
+(`dt.replace(tzinfo=ZoneInfo("Europe/Copenhagen"))`).
+
+Re-sending a feedback does not fix its date (see `external_id`). Instead,
+PATCH the date and re-run the analysis in the same call:
+
+```python
+client.feedbacks.update(feedback_id, {
+    "externalGeneratedAt": "2026-10-06T11:00:00.000Z",
+    "status": "REGISTERED",
+})
+```
+
+Like every `update()` that sends `"status": "REGISTERED"`, that is a full re-analysis:
+- The summary, issues and topics are regenerated, and issue triage starts over.
+- Automations on feedback completion fire again.
+- Once the new analysis finishes `DONE`, charts and reports can take up to an
+  hour to settle. Check with `get_id()` that `status` is back to `DONE`: if the
+  run ends `PARTIAL` or `ERROR`, charts keep showing the old date until a later
+  analysis finishes `DONE`: send the same update again.
+
+Send `"status": "REGISTERED"` only once the feedback has finished processing;
+while it is still `REGISTERED` or `PROCESSING` it starts a second analysis.
+If some feedbacks stay `REGISTERED` or `PROCESSING` long after the rest have
+finished, they are probably not being analysed at all (for example because an
+answer value is a number, or their `identity` is not analysed); ask your
+Deepdots contact instead of re-sending them.
+Patching the date without `"status": "REGISTERED"` updates the stored feedback
+only, and charts and reports keep the old date until it is next re-analysed.
+Any `update()` of a feedback whose status is `DONE`, even without `status`,
+fires the feedback-completion automations again. The API user needs a role
+with feedback-update permission (otherwise 405). Don't send an empty
+`externalGeneratedAt` to `update()`: unlike `create()`, `update()` stores it as
+it is, and the feedback then drops out of date-filtered charts and reports. If
+you need to re-analyse many feedbacks, talk to your Deepdots contact before you
+start.
 
 ### `client.contacts`
 - `create(contact)`, `get(filter=None)`, `update(contact_id, contact)`, `delete(contact_id)`
@@ -157,6 +239,82 @@ is not currently normalized.
   # Custom fields + a native column in one call
   client.contacts.update_fields(contact_id, {"nps_segment": "promoter"}, city="Copenhagen")
   ```
+
+### `client.crm`
+CRM objects are the records a company keeps next to its contacts (tickets,
+matches, memberships, ...). Each is stored as `(companyId, type, externalId)`
+plus a free-form `data` object, and survey answers can be linked to them
+through the survey link's URL parameters. The connectors take your own records
+**as they are** and do the mapping on our side.
+
+Every write method below sends 500 records per request (pass a list of any
+length, or one record as a dict) and returns totals over all requests, with
+each `failed` entry's `index` pointing into the list you passed. Failures are
+per record: a record the API cannot store is listed in `failed` and the others
+still land. A request must stay under the API's 1 MB body limit (500 typical
+FCK users or Roboticket lines are about 0.4 MB); for larger records pass a
+smaller `chunk_size`.
+
+Every request, reads included, is resent up to 3 times (after 2s, 4s, 8s) when
+it fails temporarily (502/503/504, a connection error, or no answer within 300
+s), and if the token has expired the client logs in again once and resends. If
+a request still fails after that, the call raises a
+`requests.RequestException` (`HTTPError` for an error answer, `ConnectionError`
+or `Timeout` for the network); the requests before it have already been
+applied.
+
+Resending records never creates duplicates: they are matched by their own id.
+Whether an older copy can overwrite a newer one depends on the method:
+`ingest_roboticket` and `upsert_objects` items with `sourceUpdatedAt` keep the
+newest version, while `sync_fck_users` and `upsert_objects` items without
+`sourceUpdatedAt` store the last one sent. So after a failure, resend the same
+list right away, but never resend an older export of users after newer changes
+have been sent.
+
+- `sync_fck_users(users, company_id=None, chunk_size=500)` — create-or-update
+  contacts from FCK user objects via `POST /crm/connectors/fck/users`. Matched
+  by `roboticket_id`, then by email, so the first load and later changes are
+  the same call. The last version sent wins. Returns `{"count", "created", "updated",
+  "failed"}`; a `failed` entry is `{"index", "id", "error"}` (e.g. a user
+  without a valid email).
+- `ingest_roboticket(lines, company_id=None, chunk_size=500)` — store
+  Roboticket ticket and membership lines via
+  `POST /crm/connectors/roboticket/ingest`. Each line updates its ticket or
+  membership and the match or product it belongs to; returns and transfers are
+  handled, a cancelled ticket stays cancelled, and the `AccessToken` field is
+  dropped. Returns `{"count", "applied", "ignored", "failed"}`: `ignored` lines
+  are neither a sale nor a return.
+- `upsert_objects(object_type, items, company_id=None, chunk_size=500)` —
+  create-or-update objects of one type via `POST
+  /crm/objects/{type}/upsert/batch`, matched by `externalId` (required). Other
+  item fields: `status`, `contactKey`, `parentType`, `parentKey`, `startsAt`,
+  `endsAt`, `sourceUpdatedAt`, `data`. A field left out keeps what is stored,
+  and `data` is merged key by key. Returns `{"count", "created", "updated",
+  "failed"}`.
+- `get_objects(object_type, company_id=None, external_id=None, status=None,
+  parent_type=None, parent_key=None, contact_key=None, limit=None, after=None)`
+  — list objects of one type, ordered by `externalId`, via `GET
+  /crm/objects/{type}`. Filters match exactly. Pages hold `limit` objects
+  (default 100, max 1000); for the next page pass the last `externalId` as
+  `after`.
+
+`company_id` is only for admin accounts: a company's own API user always reads
+and writes its own company.
+
+```python
+from deepdots_sdk import Deepdots
+
+client = Deepdots("api-user@example.com", "password",
+                  auth_source="identity", base_url="https://api.deepdots.com")
+
+result = client.crm.sync_fck_users(users)        # users: list of user dicts
+print(result["created"], result["updated"], result["failed"])
+
+result = client.crm.ingest_roboticket(lines)     # lines: list of Roboticket lines
+print(result["applied"], result["ignored"], result["failed"])
+
+tickets = client.crm.get_objects("ticket", contact_key="1058531")
+```
 
 ### `client.campaigns`
 - `create(campaign)`, `get(filter=None)`
@@ -202,6 +360,10 @@ client.feedbacks.create({
         {"key": "score", "value": "4"},
         {"key": "comment", "value": "Great service!"},
     ],
+    # Optional source-system fields: top level, see "Feedback source-system fields"
+    "external_id": "48213",
+    "externalGeneratedAt": "2026-10-06T11:00:00.000Z",
+    "externalUrl": "https://forms.example.com/responses/48213",
 })
 
 # Get a feedback with its attachments
