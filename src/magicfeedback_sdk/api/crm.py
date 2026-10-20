@@ -53,8 +53,8 @@ class CrmAPI:
         sent wins: never send an older export after newer changes.
 
         :param users: a list of FCK user objects (or one user as a dict).
-        :param company_id: only for admin accounts; a company's own API user
-            writes to its own company.
+        :param company_id: required for admin accounts. Other users write to
+            their own company unless they name another one they belong to.
         :param chunk_size: users per request (1-500).
         :returns: ``{"count", "created", "updated", "failed"}`` over all
             chunks. Each ``failed`` entry is ``{"index", "id", "error"}``, its
@@ -74,7 +74,7 @@ class CrmAPI:
         overwrites a newer one, and a cancelled ticket stays cancelled.
 
         :param lines: a list of Roboticket lines (or one line as a dict).
-        :param company_id: only for admin accounts.
+        :param company_id: as in :meth:`sync_fck_users`.
         :param chunk_size: lines per request (1-500).
         :returns: ``{"count", "applied", "ignored", "failed"}`` over all
             chunks. ``ignored`` lines are neither a sale nor a return (they

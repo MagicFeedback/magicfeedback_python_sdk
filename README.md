@@ -298,8 +298,9 @@ have been sent.
   (default 100, max 1000); for the next page pass the last `externalId` as
   `after`.
 
-`company_id` is only for admin accounts: a company's own API user always reads
-and writes its own company.
+`company_id` is required for admin accounts (the API answers 400 without it).
+Other users read and write their own company by default; they can also name
+another company they belong to, and any other company is refused with 403.
 
 ```python
 from deepdots_sdk import Deepdots
