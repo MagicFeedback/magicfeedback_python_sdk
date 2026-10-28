@@ -3,10 +3,10 @@ Example: authenticate using the token cached in Google Cloud Datastore.
 
 By default the SDK reads the bearer token from the Datastore cache maintained
 by the `update-token` job (kind=token-storage, email=robot@magicfeedback.io,
-database=shared) instead of calling Identity Platform on every use. When the
-cached token is missing, stale (older than token_max_age_min) or Datastore is
-unreachable, the SDK falls back to Identity Platform — which is why email and
-password are still worth providing.
+database=shared) instead of signing in on every use. When the cached token is
+missing, stale (older than token_max_age_min) or Datastore is unreachable, the
+SDK falls back to signing in through the API — which is why email and password
+are still worth providing.
 
 Requirements:
   - pip install google-cloud-datastore
@@ -26,7 +26,7 @@ from magicfeedback_sdk import MagicFeedback
 load_dotenv()
 
 # ── Configuration ──────────────────────────────────────────────────────────────
-# Optional: only used for the Identity Platform fallback (missing/stale cache).
+# Optional: only used for the sign-in fallback (missing/stale cache).
 EMAIL = os.environ.get("MF_EMAIL")
 PASSWORD = os.environ.get("MF_PASSWORD")
 # GCP project that owns the token Datastore. When omitted it is resolved from

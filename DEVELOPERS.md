@@ -71,19 +71,19 @@ directly — no `pip install -e .` needed to run the suite.
 Two kinds of tests live here, and the difference matters:
 
 **Unit tests** — no network, no credentials, safe to run anywhere. The API
-calls are monkeypatched (`make_request`, the Datastore lookup, the Identity
-Platform login):
+calls are monkeypatched (`make_request`, the Datastore lookup, the sign-in, or
+`requests.post` for the token endpoints):
 
 - `test_deepdots_alias.py`, `test_request_done_message.py`,
   `test_datastore_token.py`, `test_feedback_attachments.py`,
   `test_feedback_metadata_batch.py`, `test_contact_upsert_batch.py`,
-  `test_crm.py`
+  `test_crm.py`, `test_token_endpoints.py`
 
 ```bash
 pytest tests/test_deepdots_alias.py tests/test_request_done_message.py \
        tests/test_datastore_token.py tests/test_feedback_attachments.py \
        tests/test_feedback_metadata_batch.py tests/test_contact_upsert_batch.py \
-       tests/test_crm.py
+       tests/test_crm.py tests/test_token_endpoints.py
 ```
 
 **Integration tests** — these hit the real (PROD) API and create real data.
@@ -91,8 +91,8 @@ Each file's `client` fixture passes the shared SDK test account but uses the
 default Datastore-first auth. So with Google Application Default Credentials
 (`gcloud auth application-default login`) the tests run as the cached
 `robot@magicfeedback.io` token, NOT as the test account; only without ADC (or
-with a stale cached token) do they log in as the test account through Identity
-Platform:
+with a stale cached token) do they sign in as the test account, through the
+API's `POST /auth/token`:
 
 - `test_apikey.py`, `test_campaign.py`, `test_contact.py`,
   `test_feedback_answers_array.py`, `test_feedback_create.py`,

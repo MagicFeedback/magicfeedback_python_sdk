@@ -40,7 +40,12 @@ FeedbackAPI`). New code should prefer the Deepdots names.
 ```python
 from deepdots_sdk import Deepdots
 
-client = Deepdots("email", "password")
+# With an API key, issued by Deepdots: the way for integrations.
+client = Deepdots(api_key="dd_live_...", base_url="https://api.deepdots.com")
+
+# With an API user's email and password.
+client = Deepdots("email", "password", auth_source="identity",
+                  base_url="https://api.deepdots.com")
 ```
 
 The original names remain fully supported:
@@ -53,20 +58,34 @@ client = MagicFeedback("email", "password")
 
 ## Authentication
 
-The bearer token is resolved from one of two sources, selected with
-`auth_source`:
+**API key.** Pass `api_key="dd_live_..."` and the key is sent as the bearer
+token on every request: no sign-in, nothing to refresh. Deepdots issues the
+keys, one per integration; each acts as its API user, with the same
+permissions. `user`, `password` and `auth_source` are ignored when a key is
+given.
+
+**Email and password.** Otherwise the client signs in through the API
+(`POST /auth/token`), which asks Identity Platform for the token. The SDK no
+longer calls Identity Platform itself, so it needs no Identity Platform key:
+the `ip_key` argument is ignored (with a `DeprecationWarning`). The token lasts
+one hour; the client keeps the refresh token the API returns.
+
+The token is resolved from one of two sources, selected with `auth_source`:
 
 - `"datastore"` **(default)** — read the token cached in Google Cloud Datastore
   by the `update-token` job (kind `token-storage`, email
-  `robot@magicfeedback.io`, database `shared`). This avoids an Identity Platform
-  login on every use. If the cached token is missing, stale (older than
-  `token_max_age_min`, default 50 min) or Datastore is unreachable, the client
-  falls back to Identity Platform using `email`/`password`.
-- `"identity"` — always log in via Identity Platform (`signInWithPassword`), the
-  original behaviour, with no Datastore lookup.
+  `robot@magicfeedback.io`, database `shared`). This avoids a sign-in on every
+  use. If the cached token is missing, stale (older than `token_max_age_min`,
+  default 50 min) or Datastore is unreachable, the client falls back to
+  signing in with `email`/`password`.
+- `"identity"` — always sign in with `email`/`password`, with no Datastore
+  lookup.
 
 ```python
-# Datastore-cached token (default), with Identity Platform fallback.
+# API key (no sign-in):
+client = MagicFeedback(api_key="dd_live_...", base_url="https://api.deepdots.com")
+
+# Datastore-cached token (default), signing in as the fallback.
 # email/password are only needed for the fallback.
 client = MagicFeedback("email", "password")
 
@@ -82,14 +101,18 @@ client = MagicFeedback(
     datastore_timeout_s=5.0,         # cap the lookup so the fallback stays fast
 )
 
-# Original behaviour — always mint a fresh token via Identity Platform:
+# Always sign in with email and password:
 client = MagicFeedback("email", "password", auth_source="identity")
 ```
 
+A wrong email or password raises `requests.HTTPError` with a **401** (the same
+for both, so the API does not tell which accounts exist); a disabled user is a
+**403**, and too many failed attempts on the account a **429**.
+
 The Datastore lookup is bounded by `datastore_timeout_s` (default 5s): if the
 cache is unreachable or the credentials are stale, the client falls back to
-Identity Platform within that budget instead of blocking on the Datastore
-client's default ~60s retry deadline.
+signing in within that budget instead of blocking on the Datastore client's
+default ~60s retry deadline.
 
 The Datastore path needs the `google-cloud-datastore` package (installed as a
 dependency) and Google Application Default Credentials with read access to the
@@ -98,9 +121,12 @@ token entity (`gcloud auth application-default login` or
 
 Helper methods:
 
-- `client.refresh_token()` — re-resolve the token (same `auth_source`) and
-  update the auth header in place across all sub-API clients. Useful for
-  long-lived clients whose token has expired.
+- `client.refresh_token()` — renew the token and update the auth header in
+  place across all sub-API clients. With `auth_source="identity"` it uses the
+  refresh token (`POST /auth/token/refresh`), and signs in again if that was
+  rejected; with `"datastore"` it re-reads the cache (signing in as the
+  fallback); with an API key it does nothing. Useful for long-lived clients
+  whose token has expired: `client.crm` calls it by itself on a 401.
 - `client.auth.get_token_from_datastore(allow_stale=False)` — read the cached
   token directly; returns `None` when missing, stale or unreachable.
 

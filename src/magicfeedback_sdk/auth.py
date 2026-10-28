@@ -1,4 +1,3 @@
-import json
 from datetime import datetime, timezone
 from typing import Optional
 
@@ -10,30 +9,33 @@ class AuthManager:
 
     * ``"datastore"`` (default) — read the token cached in Google Cloud
       Datastore by the ``update-token`` job (kind=``token-storage``,
-      email=``robot@magicfeedback.io``, database=``shared``). This avoids a call
-      to Identity Platform on every SDK use. When the cached token is missing,
+      email=``robot@magicfeedback.io``, database=``shared``). This avoids signing
+      in on every SDK use. When the cached token is missing,
       stale (older than ``token_max_age_min`` minutes) or Datastore is
-      unreachable, a fresh token is minted via Identity Platform as a fallback
-      (requires ``user``/``password``).
-    * ``"identity"`` — always mint a fresh token via Identity Platform
-      (``signInWithPassword``). This is the original SDK behaviour and performs
-      no Datastore lookup.
+      unreachable, the client signs in with ``user``/``password`` as a
+      fallback.
+    * ``"identity"`` — always sign in with ``user``/``password``. This is the
+      original SDK behaviour and performs no Datastore lookup.
+
+    Signing in goes through the API (``POST /auth/token``), which asks Identity
+    Platform for the token; the SDK no longer calls Identity Platform itself.
+    The refresh token it returns renews the session (``refresh``,
+    ``POST /auth/token/refresh``) without sending the password again.
 
     The Datastore path uses the ``google-cloud-datastore`` package (a declared
     dependency) and Google Application Default Credentials with read access to
     the token entity. Missing/invalid credentials or an unreachable Datastore
-    degrade to the Identity Platform fallback; the lookup is bounded by
+    degrade to the sign-in fallback; the lookup is bounded by
     ``datastore_timeout_s`` so the fallback happens in seconds rather than
     blocking on the client's default ~60s retry deadline.
     """
 
-    IDENTITY_URL = (
-        "https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key={key}"
-    )
+    TOKEN_PATH = "/auth/token"
+    REFRESH_PATH = "/auth/token/refresh"
 
     def __init__(
         self,
-        ip_key: str,
+        base_url: str,
         logger,
         *,
         gcp_project_id: Optional[str] = None,
@@ -42,9 +44,13 @@ class AuthManager:
         token_email: str = "robot@magicfeedback.io",
         token_max_age_min: int = 50,
         datastore_timeout_s: float = 5.0,
+        request_timeout_s: float = 30.0,
     ):
-        self.ip_key = ip_key
+        self.base_url = base_url.rstrip("/")
         self.logger = logger
+        self.request_timeout_s = request_timeout_s
+        # From the last sign-in or refresh; None for a token read from Datastore.
+        self.refresh_token: Optional[str] = None
         # Datastore token cache configuration (matches the update-token job).
         self.gcp_project_id = gcp_project_id
         self.datastore_database_id = datastore_database_id
@@ -62,9 +68,9 @@ class AuthManager:
     def get_api_key(self, user=None, password=None, source: str = "datastore") -> str:
         """Return a bearer token from ``source``.
 
-        ``"datastore"`` prefers the cached token and falls back to Identity
-        Platform when it is missing/stale/unreachable. ``"identity"`` always
-        logs in via Identity Platform.
+        ``"datastore"`` prefers the cached token and signs in with
+        ``user``/``password`` when it is missing/stale/unreachable.
+        ``"identity"`` always signs in.
         """
         if source == "identity":
             return self.identity_login(user, password)
@@ -74,7 +80,7 @@ class AuthManager:
                 return token
             self.logger.info(
                 "No fresh token in Datastore (kind=%s, email=%s); "
-                "falling back to Identity Platform login",
+                "falling back to signing in",
                 self.token_kind,
                 self.token_email,
             )
@@ -84,31 +90,54 @@ class AuthManager:
         )
 
     # ------------------------------------------------------------------
-    # Identity Platform
+    # Sign-in and refresh through the API
     # ------------------------------------------------------------------
     def identity_login(self, user, password) -> str:
+        """Sign in with ``POST /auth/token`` and return the ID token.
+
+        Keeps the refresh token for :meth:`refresh`. A wrong email or password
+        is a 401 from the API (raised as ``requests.HTTPError``), the same for
+        both so the API does not tell which accounts exist.
+        """
         if not user or not password:
             raise ValueError(
-                "Identity Platform login requires both user and password. "
+                "Signing in requires both user and password. "
                 "Provide them to MagicFeedback(...) or ensure a fresh token "
                 "exists in Datastore."
             )
         self.logger.info("Logging in with user: %s", user)
+        return self._token_request(
+            self.TOKEN_PATH, {"email": user, "password": password}
+        )
 
-        url = self.IDENTITY_URL.format(key=self.ip_key)
-        headers = {"Content-Type": "application/json"}
-        payload = json.dumps({
-            "email": user,
-            "password": password,
-            "returnSecureToken": True
-        })
+    def refresh(self, user=None, password=None) -> str:
+        """Return a new ID token for the refresh token of the last sign-in.
 
-        response = requests.post(url, headers=headers, data=payload)
+        Without a refresh token, or when the API rejects it (401: expired or
+        revoked), signs in again with ``user``/``password``.
+        """
+        if self.refresh_token:
+            try:
+                return self._token_request(
+                    self.REFRESH_PATH, {"refreshToken": self.refresh_token}
+                )
+            except requests.HTTPError as exc:
+                if exc.response is None or exc.response.status_code != 401:
+                    raise
+                self.logger.info("Refresh token rejected; signing in again")
+                self.refresh_token = None
+        return self.identity_login(user, password)
+
+    def _token_request(self, path: str, body: dict) -> str:
+        response = requests.post(
+            self.base_url + path, json=body, timeout=self.request_timeout_s
+        )
         response.raise_for_status()
         data = response.json()
         token = data.get("idToken")
         if not token:
-            raise RuntimeError("idToken not found in Identity Platform response")
+            raise RuntimeError(f"idToken not found in the {path} response")
+        self.refresh_token = data.get("refreshToken")
         return token
 
     # ------------------------------------------------------------------

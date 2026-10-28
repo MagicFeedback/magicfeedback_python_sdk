@@ -1,7 +1,7 @@
 """Offline unit tests for the Datastore-first auth flow.
 
 These tests never touch the network or Google Cloud: the Datastore lookup
-(``_fetch_token_entity``) and the Identity Platform login (``identity_login``)
+(``_fetch_token_entity``) and the sign-in (``identity_login``)
 are monkeypatched, so ``google-cloud-datastore`` need not be installed.
 """
 import logging
@@ -14,7 +14,7 @@ from magicfeedback_sdk.auth import AuthManager
 
 
 def _mgr(**kwargs):
-    return AuthManager("ip-key", logging.getLogger("test"), **kwargs)
+    return AuthManager("https://api.test", logging.getLogger("test"), **kwargs)
 
 
 def _entity(token="cached-token", age_min=0):
