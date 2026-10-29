@@ -81,17 +81,18 @@ class FeedbackAPI:
         ``companyId`` and ``productId`` are optional. When either is missing or
         empty (``None`` or ``""``), it is copied from the integration, which the
         SDK reads once per ``integrationId`` (``GET /integrations/{id}``) and
-        keeps for the life of the client. The API can fill them from the
+        keeps for the life of the client (an integration without a company or
+        product is read again on each call). The API can fill them from the
         integration too, but when the caller can't read it, it falls back to
         the caller's own company and no product; reading the integration here
         makes that case raise instead. Non-empty values the caller passed are
         never overwritten, and the copied values go into the request only, not
         into the caller's dict, so the dict can be reused for another
-        integration. ``ValueError`` is raised if the integration has no company
-        or product, or belongs to another company than the ``companyId``
-        passed, and ``requests.HTTPError`` if the API refuses the read (e.g.
-        HTTP 406); nothing is created in either case. Passing both fields skips
-        the lookup.
+        integration. ``ValueError`` is raised if the integration has no
+        company, or has no product and none was passed, or belongs to another
+        company than the ``companyId`` passed, and ``requests.HTTPError`` if
+        the API refuses the read (e.g. HTTP 406); nothing is created in either
+        case. Passing both fields skips the lookup.
         """
         url = f"{self.base_url}/feedbacks"
         required_fields = ["name", "type", "identity", "integrationId"]

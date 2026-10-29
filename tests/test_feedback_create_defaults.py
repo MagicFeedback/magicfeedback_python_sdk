@@ -150,6 +150,15 @@ def test_integration_without_product_raises_and_is_not_cached(calls):
     assert [method for method, _, _ in calls] == ["GET", "GET"]  # no POST, read again
 
 
+def test_integration_without_product_is_fine_when_product_is_passed(calls):
+    api = _api()
+    for _ in range(2):
+        api.create(_payload(integrationId="no-product", productId="ACME_MINE"))
+
+    assert [(sent["companyId"], sent["productId"]) for sent in _posts(calls)] == [("ACME", "ACME_MINE")] * 2
+    assert [method for method, _, _ in calls] == ["GET", "POST", "GET", "POST"]  # read again, not cached
+
+
 @pytest.mark.parametrize("field", ["name", "type", "identity", "integrationId"])
 def test_required_fields_still_raise_before_any_request(calls, field):
     payload = _payload()
