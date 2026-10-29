@@ -77,13 +77,14 @@ calls are monkeypatched (`make_request`, the Datastore lookup, the sign-in, or
 - `test_deepdots_alias.py`, `test_request_done_message.py`,
   `test_datastore_token.py`, `test_feedback_attachments.py`,
   `test_feedback_metadata_batch.py`, `test_contact_upsert_batch.py`,
-  `test_crm.py`, `test_token_endpoints.py`
+  `test_crm.py`, `test_token_endpoints.py`, `test_feedback_create_defaults.py`
 
 ```bash
 pytest tests/test_deepdots_alias.py tests/test_request_done_message.py \
        tests/test_datastore_token.py tests/test_feedback_attachments.py \
        tests/test_feedback_metadata_batch.py tests/test_contact_upsert_batch.py \
-       tests/test_crm.py tests/test_token_endpoints.py
+       tests/test_crm.py tests/test_token_endpoints.py \
+       tests/test_feedback_create_defaults.py
 ```
 
 **Integration tests** — these hit the real (PROD) API and create real data.

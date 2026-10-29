@@ -1,6 +1,7 @@
 import hashlib
 import json
 import os
+from urllib.parse import quote
 
 import requests
 
@@ -68,17 +69,91 @@ class FeedbackAPI:
         self.base_url = base_url
         self.headers = headers
         self.logger = logger
+        # integrationId -> {"companyId", "productId"}, read once per client.
+        self._integrations = {}
 
     def create(self, feedback):
+        """Create a feedback via ``POST /feedbacks``.
+
+        ``name``, ``type``, ``identity`` and ``integrationId`` are required:
+        ``ValueError`` is raised before anything is sent if one is missing.
+
+        ``companyId`` and ``productId`` are optional. When either is missing or
+        empty (``None`` or ``""``), it is copied from the integration, which the
+        SDK reads once per ``integrationId`` (``GET /integrations/{id}``) and
+        keeps for the life of the client. The API can fill them from the
+        integration too, but when the caller can't read it, it falls back to
+        the caller's own company and no product; reading the integration here
+        makes that case raise instead. Non-empty values the caller passed are
+        never overwritten, and the copied values go into the request only, not
+        into the caller's dict, so the dict can be reused for another
+        integration. ``ValueError`` is raised if the integration has no company
+        or product, or belongs to another company than the ``companyId``
+        passed, and ``requests.HTTPError`` if the API refuses the read (e.g.
+        HTTP 406); nothing is created in either case. Passing both fields skips
+        the lookup.
+        """
         url = f"{self.base_url}/feedbacks"
-        required_fields = ["name", "type", "identity", "integrationId", "companyId", "productId"]
+        required_fields = ["name", "type", "identity", "integrationId"]
         for field in required_fields:
             if field not in feedback:
                 raise ValueError(f"Missing required field: {field}")
 
+        missing = [field for field in ("companyId", "productId") if not feedback.get(field)]
+        if missing:
+            integration_id = feedback["integrationId"]
+            if not integration_id:
+                raise ValueError("Missing required field: integrationId")
+            if not isinstance(integration_id, str):
+                raise ValueError("integrationId must be a string")
+            integration = self._get_integration(integration_id)
+            # Fill a shallow copy: ids written into the caller's dict would be
+            # sent again if the caller reused it for another integration. The
+            # nested lists stay shared, so the value wrapping below still
+            # updates the caller's answers/metadata/metrics in place.
+            feedback = dict(feedback)
+            # Never pair a company with another company's product, as the API's
+            # own fill doesn't either.
+            company_id = feedback.get("companyId")
+            if company_id and integration.get("companyId") and company_id != integration["companyId"]:
+                raise ValueError(
+                    f"Integration {integration_id} belongs to company "
+                    f"{integration['companyId']}, not {company_id}"
+                )
+            for field in missing:
+                if not integration.get(field):
+                    raise ValueError(
+                        f"Missing required field: {field} "
+                        f"(integration {integration_id} has none; pass it explicitly)"
+                    )
+                if field == "productId" and not integration.get("companyId"):
+                    raise ValueError(
+                        f"Missing required field: productId "
+                        f"(integration {integration_id} has no company; pass it explicitly)"
+                    )
+                feedback[field] = integration[field]
+
         _normalize_pair_values(feedback)
 
         return make_request("POST", url, self.headers, json=feedback, logger=self.logger)
+
+    def _get_integration(self, integration_id):
+        """Return the integration's companyId/productId, read once per client.
+
+        Only complete answers are cached, so an integration that gets its
+        product later is read again instead of failing for the life of the
+        client.
+        """
+        if integration_id in self._integrations:
+            return self._integrations[integration_id]
+        url = f"{self.base_url}/integrations/{quote(integration_id, safe='')}"
+        data = make_request("GET", url, self.headers, logger=self.logger) or {}
+        if not isinstance(data, dict):
+            raise ValueError(f"Unexpected response reading integration {integration_id!r}")
+        ids = {field: data.get(field) for field in ("companyId", "productId")}
+        if all(ids.values()):
+            self._integrations[integration_id] = ids
+        return ids
 
     def get_id(self, feedback_id, filter=None):
         url = f"{self.base_url}/feedbacks/{feedback_id}"

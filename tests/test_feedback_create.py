@@ -38,7 +38,24 @@ def test_create_feedback(client):
     assert "id" in response
     # Check if the created feedback has the correct name
     assert response["name"] == "Test SDK Feedback"
-    
+
+
+def test_create_feedback_without_company_and_product(client):
+    """companyId and productId left out are taken from the integration (SDK 1.0.25)."""
+
+    integration_id = "0eb9d270-6dd7-11ef-9987-21e04f383573"
+    response = client.feedbacks.create({
+        "name": "Test SDK Feedback (integration defaults)",
+        "type": "APP",
+        "identity": "MAGICFORM",
+        "answers": [{"key": "comment", "value": "Created without companyId and productId."}],
+        "integrationId": integration_id,
+    })
+
+    integration = client.feedbacks._get_integration(integration_id)
+    assert response["companyId"] == integration["companyId"]
+    assert response["productId"] == integration["productId"]
+
 @pytest.fixture
 def client():
     """Provides a MagicFeedbackClient instance for testing."""
