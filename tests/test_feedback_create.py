@@ -1,6 +1,6 @@
 import pytest
 
-from src.magicfeedback import MagicFeedbackClient
+from magicfeedback_sdk import MagicFeedback
 
 
 def test_create_feedback(client):
@@ -33,7 +33,7 @@ def test_create_feedback(client):
         "productId": "MAGICFEEDBACK_DEV_SDK_GENERAL",
     }
 
-    response = client.create_feedback(feedback_data)
+    response = client.feedbacks.create(feedback_data)
 
     assert "id" in response
     # Check if the created feedback has the correct name
@@ -43,5 +43,5 @@ def test_create_feedback(client):
 def client():
     """Provides a MagicFeedbackClient instance for testing."""
 
-    client = MagicFeedbackClient('sdk_tester@magicfeedback.io', 'caracter')
+    client = MagicFeedback('sdk_tester@magicfeedback.io', 'caracter')
     return client
