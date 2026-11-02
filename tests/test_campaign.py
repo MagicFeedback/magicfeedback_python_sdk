@@ -3,9 +3,9 @@ import string
 
 import pytest
 
-from src.magicfeedback import MagicFeedbackClient
+from magicfeedback_sdk import MagicFeedback
 
-'''
+
 def test_create_campaign(client):
     """Tests creating a new campaign item."""
 
@@ -17,7 +17,7 @@ def test_create_campaign(client):
         "companyId": "MAGICFEEDBACK_DEV_SDK"
     }
 
-    response = client.create_campaign(campaign_data)
+    response = client.campaigns.create(campaign_data)
 
     assert "id" in response
     # Check if the created contact has the correct name
@@ -32,9 +32,8 @@ def test_list_campaign(client):
         }
     }
 
-    response = client.get_campaigns(filter)
+    response = client.campaigns.get(filter)
     assert len(response) > 0
-'''
 
 def test_create_campaign_session(client):
     """Tests creating a new campaign session item."""
@@ -47,7 +46,7 @@ def test_create_campaign_session(client):
         "companyId": "MAGICFEEDBACK_DEV_SDK"
     }
 
-    campaign = client.create_campaign(campaign_data)
+    campaign = client.campaigns.create(campaign_data)
     assert "id" in campaign
 
     # List only 2 contacts from the company
@@ -59,7 +58,7 @@ def test_create_campaign_session(client):
         "limit": 2
     }
 
-    contacts = client.get_contacts(filter)
+    contacts = client.contacts.get(filter)
     assert len(contacts) > 0
 
     # Asign the contacts to the campaign
@@ -67,15 +66,17 @@ def test_create_campaign_session(client):
         "crmContactId": []
     }
     for contact in contacts:
+        print(contact)
         session_data.get("crmContactId").append(contact["id"])
 
-    response = client.create_campaign_session(campaign["id"], session_data)
+    print(session_data)
+    response = client.campaigns.create_session(campaign["id"], session_data)
 
 @pytest.fixture
 def client():
     """Provides a MagicFeedbackClient instance for testing."""
 
-    client = MagicFeedbackClient('sdk_tester@magicfeedback.io', 'caracter')
+    client = MagicFeedback('sdk_tester@magicfeedback.io', 'caracter')
     return client
 
 # Generate random name, last name and email
