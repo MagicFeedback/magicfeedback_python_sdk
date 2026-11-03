@@ -45,7 +45,7 @@ def _echo(calls, counters):
 def test_sync_fck_users_posts_users_unchanged(monkeypatch):
     calls = []
     monkeypatch.setattr(crm_module, "make_request", _echo(calls, ("created", "updated")))
-    user = {"id": 78, "email": "a@fck.dk", "roboticket_id": "1058531", "agillic_id": ".WlXB"}
+    user = {"id": 78, "email": "a@example.com", "roboticket_id": "1001", "agillic_id": "x1"}
 
     res = _api().sync_fck_users([user])
 
@@ -80,9 +80,9 @@ def test_company_id_is_sent_when_given(monkeypatch):
     calls = []
     monkeypatch.setattr(crm_module, "make_request", _echo(calls, ("created", "updated")))
 
-    _api().sync_fck_users([{"id": 1}], company_id="FCK")
+    _api().sync_fck_users([{"id": 1}], company_id="ACME")
 
-    assert calls[0][2]["companyId"] == "FCK"
+    assert calls[0][2]["companyId"] == "ACME"
 
 
 def test_failed_index_points_into_the_original_list(monkeypatch):
@@ -230,10 +230,10 @@ def test_upsert_objects_posts_items_for_the_type(monkeypatch):
     calls = []
     monkeypatch.setattr(crm_module, "make_request", _echo(calls, ("created", "updated")))
 
-    _api().upsert_objects("match", [{"externalId": "1201", "data": {"name": "FCK - BIF"}}])
+    _api().upsert_objects("match", [{"externalId": "1201", "data": {"name": "Home - Away"}}])
 
     assert calls[0][1] == "https://api.test/crm/objects/match/upsert/batch"
-    assert calls[0][2] == {"items": [{"externalId": "1201", "data": {"name": "FCK - BIF"}}]}
+    assert calls[0][2] == {"items": [{"externalId": "1201", "data": {"name": "Home - Away"}}]}
 
 
 def test_get_objects_sends_only_the_filters_given(monkeypatch):
@@ -241,9 +241,9 @@ def test_get_objects_sends_only_the_filters_given(monkeypatch):
     monkeypatch.setattr(crm_module, "make_request",
                         lambda method, url, headers, **kw: calls.append((method, url)) or [])
 
-    _api().get_objects("ticket", contact_key="1058531", limit=1000, after="215")
+    _api().get_objects("ticket", contact_key="C-1001", limit=1000, after="215")
 
-    assert calls == [("GET", "https://api.test/crm/objects/ticket?contactKey=1058531&limit=1000&after=215")]
+    assert calls == [("GET", "https://api.test/crm/objects/ticket?contactKey=C-1001&limit=1000&after=215")]
 
 
 def test_the_client_wires_crm_to_its_token_refresh(monkeypatch):

@@ -24,6 +24,7 @@ src/deepdots_sdk/         re-export mirror under the new company name
 packages/deepdots/        the `deepdots` bridge distribution (metadata only)
 tests/                    pytest suite (see "Tests" below)
 examples/                 runnable usage examples
+MANIFEST.in               keeps tests/ out of the sdist
 publish.sh                publishes the SDK
 publish_deepdots.sh       publishes the bridge
 ```
