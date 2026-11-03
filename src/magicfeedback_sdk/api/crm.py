@@ -21,13 +21,10 @@ REQUEST_TIMEOUT = (10, 300)
 
 
 class CrmAPI:
-    """CRM objects (tickets, matches, memberships, ...) and the connectors that
-    take a client's own records as they are.
+    """CRM objects (tickets, matches, memberships, ...).
 
     A CRM object is any record a company keeps next to its contacts, stored as
-    ``(companyId, type, externalId)`` plus a free-form ``data`` object. The
-    connectors (:meth:`sync_fck_users`, :meth:`ingest_roboticket`) do the
-    mapping server-side, so the sender passes its records unchanged.
+    ``(companyId, type, externalId)`` plus a free-form ``data`` object.
 
     Every write method chunks to 500 records per request. Every request is
     resent on a transient failure (502/503/504, connection error, timeout) and
@@ -45,14 +42,15 @@ class CrmAPI:
         self.backoff_s = backoff_s
 
     def sync_fck_users(self, users, company_id=None, chunk_size=MAX_CRM_BATCH):
-        """Create-or-update CRM contacts from FCK user objects, sent as they are.
+        """Create-or-update CRM contacts from user records, sent as they are.
 
         Hits ``POST /crm/connectors/fck/users``. Each user becomes one contact,
         matched by its ``roboticket_id`` first and its email second, so the
         initial load and later changes are the same call. The last version
         sent wins: never send an older export after newer changes.
 
-        :param users: a list of FCK user objects (or one user as a dict).
+        :param users: a list of user records in the connector's format (or
+            one user as a dict).
         :param company_id: required for admin accounts. Other users write to
             their own company unless they name another one they belong to.
         :param chunk_size: users per request (1-500).
@@ -74,7 +72,8 @@ class CrmAPI:
         overwrites a newer one, and a cancelled ticket stays cancelled.
 
         :param lines: a list of Roboticket lines (or one line as a dict).
-        :param company_id: as in :meth:`sync_fck_users`.
+        :param company_id: required for admin accounts. Other users write to
+            their own company unless they name another one they belong to.
         :param chunk_size: lines per request (1-500).
         :returns: ``{"count", "applied", "ignored", "failed"}`` over all
             chunks. ``ignored`` lines are neither a sale nor a return (they
