@@ -95,9 +95,9 @@ class CrmAPI:
         only fills gaps.
 
         :param object_type: e.g. ``"match"`` (lowercase letters, digits, ``_``).
-        :param items: list of objects (dicts). Anything else raises
-            ``ValueError`` before a request is sent: the API would reject the
-            whole chunk.
+        :param items: a list of objects (dicts), or one object as a dict. A
+            list holding anything but dicts raises ``ValueError`` before a
+            request is sent: the API would reject the whole chunk.
         :returns: ``{"count", "created", "updated", "failed"}``; each
             ``failed`` entry is ``{"index", "externalId", "error"}``.
         """

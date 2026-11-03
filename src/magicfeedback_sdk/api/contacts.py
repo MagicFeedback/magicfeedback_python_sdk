@@ -14,15 +14,16 @@ class ContactsAPI:
     def create(self, contact):
         """Create a contact, or update the one that already has its ``externalId``.
 
-        Hits ``POST /crm/contacts``. A company has at most one contact per
-        ``externalId``: when the company already has one with the
-        ``externalId`` sent, whatever its status, no contact is added. That
-        contact is returned, updated with the fields sent (``email`` included,
-        ``customFields`` merged) and brought back to ACTIVE if it was deleted;
-        an unsubscribed contact stays unsubscribed, and a caller whose role
-        cannot update contacts gets it back unchanged. Without an
-        ``externalId`` a new contact is always created, even for an email the
-        company already has: use :meth:`upsert` to match by email.
+        Hits ``POST /crm/contacts``. When the company already has a contact
+        with the ``externalId`` sent, whatever its status, no contact is
+        added: that contact is returned, updated with the fields sent
+        (``email`` included, ``customFields`` merged) and brought back to
+        ACTIVE if it was deleted; an unsubscribed contact stays unsubscribed,
+        and a caller whose role cannot update contacts gets it back unchanged.
+        Without an ``externalId`` a new contact is always created, even for an
+        email the company already has: use :meth:`upsert` to match by email.
+        This is a check before inserting, not a unique constraint: a company
+        can still have several contacts with the same ``externalId``.
         """
         url = f"{self.base_url}/crm/contacts"
         required_fields = ["name", "lastname", "email", "companyId"]
@@ -84,7 +85,10 @@ class ContactsAPI:
         contact with the normalized email, it is PATCHed. Otherwise the
         contact holding the ``externalId`` sent, if any, is updated: it takes
         the new email and comes back to ACTIVE if it was deleted. Otherwise a
-        new one is created. :meth:`create` matches only by ``externalId``, so
+        new one is created. Only ACTIVE contacts are matched by email: an
+        unsubscribed or deleted contact is found only through its
+        ``externalId``, and without it a new ACTIVE contact is created with
+        the same email. :meth:`create` matches only by ``externalId``, so
         without one it adds a contact even for an email the company already
         has.
 

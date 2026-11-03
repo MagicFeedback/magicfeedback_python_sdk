@@ -223,8 +223,8 @@ you need to re-analyse many feedbacks, talk to your Deepdots contact before you
 start.
 
 ### `client.contacts`
-- `create(contact)`, `get(filter=None)`, `update(contact_id, contact)`, `delete(contact_id)`. A company has at most one contact per `externalId`: when `create()` sends an `externalId` the company already has, whatever that contact's status, no contact is added. The API returns that contact updated with the fields you sent (`email` included, `customFields` merged) and brings it back to ACTIVE if it was deleted; an unsubscribed contact stays unsubscribed, and if your role can't update contacts it comes back unchanged. Without an `externalId`, `create()` always adds a contact, even for an email the company already has.
-- `upsert(contact)` — **create-or-update** a single contact via `POST /crm/contacts/upsert`. Prefer this over `create()` when the record may already exist. It updates the company's ACTIVE contact with the same email; if there is none, the contact holding the `externalId` you send, which then takes your email and comes back to ACTIVE if it was deleted; otherwise it creates one. On the update branch scalars are overwritten and `customFields` is **merged** (same additive semantics as `update_fields`); the key the contact was matched by (its email, or its `externalId`) is never rewritten. `name`, `email`, `companyId` are required. Returns the contact after the upsert.
+- `create(contact)`, `get(filter=None)`, `update(contact_id, contact)`, `delete(contact_id)`. When `create()` sends an `externalId` the company already has, whatever that contact's status, no contact is added: the API returns that contact updated with the fields you sent (`email` included, `customFields` merged) and brings it back to ACTIVE if it was deleted; an unsubscribed contact stays unsubscribed, and if your role can't update contacts it comes back unchanged. Without an `externalId`, `create()` always adds a contact, even for an email the company already has. This is a check before inserting, not a unique constraint: a company can still have several contacts with the same `externalId`.
+- `upsert(contact)` — **create-or-update** a single contact via `POST /crm/contacts/upsert`. Prefer this over `create()` when the record may already exist. It updates the company's ACTIVE contact with the same email; if there is none, the contact holding the `externalId` you send, which then takes your email and comes back to ACTIVE if it was deleted; otherwise it creates one. Only ACTIVE contacts are matched by email: an unsubscribed or deleted contact is found only through the `externalId` you send, and without it `upsert()` creates a new ACTIVE contact with the same email. On the update branch scalars are overwritten and `customFields` is **merged** (same additive semantics as `update_fields`); the key the contact was matched by (its email, or its `externalId`) is never rewritten. `name`, `email`, `companyId` are required. Returns the contact after the upsert.
 
   ```python
   client.contacts.upsert({
@@ -265,8 +265,9 @@ through the survey link's URL parameters.
 one record as a dict) and returns totals over all requests, with each `failed`
 entry's `index` pointing into the list you passed. Failures are per record: a
 record the API cannot store is listed in `failed` and the others still land. A
-request must stay under the API's 1 MB body limit; for large records pass a
-smaller `chunk_size`.
+request must stay under the API's 1 MB body limit: at the default 500 records
+per request that is about 2 KB of JSON per record on average. For larger
+records pass a smaller `chunk_size`.
 
 Every request, reads included, is resent up to 3 times (after 2s, 4s, 8s) when
 it fails temporarily (502/503/504, a connection error, or no answer within 300
