@@ -3,6 +3,7 @@
 ``requests.post`` is replaced by a fake that records each call and answers
 from a script, so nothing reaches the network.
 """
+import inspect
 import logging
 import warnings
 
@@ -130,6 +131,14 @@ def test_client_with_api_key_never_signs_in(api):
     assert client.headers["Authorization"] == "Bearer dd_live_abc"
     assert client.refresh_token() == "dd_live_abc"
     assert calls == []
+
+
+def test_api_key_comes_last_so_positional_calls_bind_as_in_1_0_22():
+    assert list(inspect.signature(MagicFeedback).parameters) == [
+        "user", "password", "base_url", "ip_key", "auth_source", "gcp_project_id",
+        "datastore_database_id", "token_kind", "token_email", "token_max_age_min",
+        "datastore_timeout_s", "api_key",
+    ]
 
 
 def test_ip_key_is_ignored_with_a_warning(api):
