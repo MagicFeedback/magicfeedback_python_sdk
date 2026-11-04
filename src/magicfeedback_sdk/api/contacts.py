@@ -12,6 +12,19 @@ class ContactsAPI:
         self.logger = logger
 
     def create(self, contact):
+        """Create a contact, or update the one that already has its ``externalId``.
+
+        Hits ``POST /crm/contacts``. When the company already has a contact
+        with the ``externalId`` sent, whatever its status, no contact is
+        added: that contact is returned, updated with the fields sent
+        (``email`` included, ``customFields`` merged) and brought back to
+        ACTIVE if it was deleted; an unsubscribed contact stays unsubscribed,
+        and a caller whose role cannot update contacts gets it back unchanged.
+        Without an ``externalId`` a new contact is always created, even for an
+        email the company already has: use :meth:`upsert` to match by email.
+        This is a check before inserting, not a unique constraint: a company
+        can still have several contacts with the same ``externalId``.
+        """
         url = f"{self.base_url}/crm/contacts"
         required_fields = ["name", "lastname", "email", "companyId"]
         for field in required_fields:
@@ -66,19 +79,25 @@ class ContactsAPI:
         return make_request("PATCH", url, self.headers, json=payload, logger=self.logger)
 
     def upsert(self, contact):
-        """Create-or-update a single contact, matched by ``(companyId, email)``.
+        """Create-or-update a single contact, matched by email first.
 
-        Hits ``POST /crm/contacts/upsert``. Unlike :meth:`create` (which always
-        inserts — there is no unique constraint on email, so re-posting a known
-        email silently creates a duplicate), this reconciles: if an ACTIVE
-        contact with the normalized email already exists in the company it is
-        PATCHed, otherwise a new one is created.
+        Hits ``POST /crm/contacts/upsert``. If the company has an ACTIVE
+        contact with the normalized email, it is PATCHed. Otherwise the
+        contact holding the ``externalId`` sent, if any, is updated: it takes
+        the new email and comes back to ACTIVE if it was deleted. Otherwise a
+        new one is created. Only ACTIVE contacts are matched by email: an
+        unsubscribed or deleted contact is found only through its
+        ``externalId``, and without it a new ACTIVE contact is created with
+        the same email. :meth:`create` matches only by ``externalId``, so
+        without one it adds a contact even for an email the company already
+        has.
 
         On the update branch the write is additive, matching :meth:`update_fields`
         and the other server-side writers: the scalar columns you send are
         overwritten and ``customFields`` is MERGED (refs upserted, ``None``
-        clears one, others kept) — never replaced wholesale. The match key
-        (``email``/``companyId``) is never rewritten.
+        clears one, others kept) — never replaced wholesale. The key the
+        contact was matched by (its email, or its ``externalId``) and its
+        ``companyId`` are never rewritten.
 
         :param contact: the contact record. ``name``, ``email`` and ``companyId``
             are required (an insert needs them); other columns and
@@ -93,7 +112,7 @@ class ContactsAPI:
         return make_request("POST", url, self.headers, json=contact, logger=self.logger)
 
     def upsert_batch(self, items, chunk_size=MAX_UPSERT_BATCH):
-        """Upsert many contacts in one go, each matched by ``(companyId, email)``.
+        """Upsert many contacts in one go, each matched as in :meth:`upsert`.
 
         Hits ``POST /crm/contacts/upsert/batch``, automatically CHUNKING ``items``
         to the server cap (500) so you can pass a list of any length — a 1,200-item

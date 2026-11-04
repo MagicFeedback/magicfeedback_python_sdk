@@ -23,19 +23,21 @@ class MagicFeedback:
         base_url: str = "https://api.magicfeedback.io",
         ip_key: str = None,
         auth_source: str = "datastore",
-        api_key: str = None,
         gcp_project_id: str = None,
         datastore_database_id: str = "shared",
         token_kind: str = "token-storage",
         token_email: str = "robot@magicfeedback.io",
         token_max_age_min: int = 50,
         datastore_timeout_s: float = 5.0,
+        # Last, so the positional order of the parameters above stays the one
+        # 1.0.22 and earlier had.
+        api_key: str = None,
     ):
         """Create a MagicFeedback API client.
 
         With ``api_key`` (``"dd_live_..."``), the key is the bearer token: no
         sign-in, no refresh, and ``user``/``password``/``auth_source`` are
-        ignored. This is the way for clients' integrations.
+        ignored.
 
         Otherwise, by default (``auth_source="datastore"``) the bearer token is
         read from the Google Cloud Datastore cache maintained by the
@@ -51,7 +53,6 @@ class MagicFeedback:
         :param ip_key: no longer used, and ignored: the SDK signs in through the
             API, which holds the Identity Platform key.
         :param auth_source: ``"datastore"`` (default) or ``"identity"``.
-        :param api_key: a Deepdots API key; when given, used as is.
         :param gcp_project_id: GCP project owning the token Datastore; when
             omitted, resolved from Application Default Credentials.
         :param datastore_database_id: Datastore database holding the token
@@ -66,6 +67,7 @@ class MagicFeedback:
             Datastore lookup; on timeout/error the client falls back to signing
             in. Keeps the fallback fast instead of blocking on the
             Datastore client's default ~60s retry deadline.
+        :param api_key: a Deepdots API key; when given, used as is.
         """
         self.logger = configure_logger()
         self.base_url = base_url

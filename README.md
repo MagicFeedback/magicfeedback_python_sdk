@@ -40,9 +40,6 @@ FeedbackAPI`). New code should prefer the Deepdots names.
 ```python
 from deepdots_sdk import Deepdots
 
-# With an API key, issued by Deepdots: the way for integrations.
-client = Deepdots(api_key="dd_live_...", base_url="https://api.deepdots.com")
-
 # With an API user's email and password.
 client = Deepdots("email", "password", auth_source="identity",
                   base_url="https://api.deepdots.com")
@@ -58,17 +55,11 @@ client = MagicFeedback("email", "password")
 
 ## Authentication
 
-**API key.** Pass `api_key="dd_live_..."` and the key is sent as the bearer
-token on every request: no sign-in, nothing to refresh. Deepdots issues the
-keys, one per integration; each acts as its API user, with the same
-permissions. `user`, `password` and `auth_source` are ignored when a key is
-given.
-
-**Email and password.** Otherwise the client signs in through the API
-(`POST /auth/token`), which asks Identity Platform for the token. The SDK no
-longer calls Identity Platform itself, so it needs no Identity Platform key:
-the `ip_key` argument is ignored (with a `DeprecationWarning`). The token lasts
-one hour; the client keeps the refresh token the API returns.
+The client signs in through the API (`POST /auth/token`), which asks Identity
+Platform for the token. The SDK no longer calls Identity Platform itself, so it
+needs no Identity Platform key: the `ip_key` argument is ignored (with a
+`DeprecationWarning`). The token lasts one hour; the client keeps the refresh
+token the API returns.
 
 The token is resolved from one of two sources, selected with `auth_source`:
 
@@ -77,14 +68,12 @@ The token is resolved from one of two sources, selected with `auth_source`:
   `robot@magicfeedback.io`, database `shared`). This avoids a sign-in on every
   use. If the cached token is missing, stale (older than `token_max_age_min`,
   default 50 min) or Datastore is unreachable, the client falls back to
-  signing in with `email`/`password`.
-- `"identity"` — always sign in with `email`/`password`, with no Datastore
-  lookup.
+  signing in with `user`/`password`.
+- `"identity"` — always sign in with `user`/`password`, with no Datastore
+  lookup. Use it outside Deepdots' own Google Cloud projects, where the
+  Datastore cache can't be read.
 
 ```python
-# API key (no sign-in):
-client = MagicFeedback(api_key="dd_live_...", base_url="https://api.deepdots.com")
-
 # Datastore-cached token (default), signing in as the fallback.
 # email/password are only needed for the fallback.
 client = MagicFeedback("email", "password")
@@ -125,15 +114,15 @@ Helper methods:
   place across all sub-API clients. With `auth_source="identity"` it uses the
   refresh token (`POST /auth/token/refresh`), and signs in again if that was
   rejected; with `"datastore"` it re-reads the cache (signing in as the
-  fallback); with an API key it does nothing. Useful for long-lived clients
-  whose token has expired: `client.crm` calls it by itself on a 401.
+  fallback). Useful for long-lived clients whose token has expired:
+  `client.crm` calls it by itself on a 401.
 - `client.auth.get_token_from_datastore(allow_stale=False)` — read the cached
   token directly; returns `None` when missing, stale or unreachable.
 
 ## API Reference
 
 ### `client.feedbacks`
-- `create(feedback)` — creates a feedback via `POST /feedbacks`. The dict becomes the JSON body with your keys unchanged, so every field is top-level (the SDK's only change is wrapping a scalar `value` into a list, see below). The SDK requires `name`, `type`, `identity`, `integrationId`, `companyId`, `productId` (it raises `ValueError` before sending if one is missing). Use the `identity` of the integration the feedback belongs to: survey identities such as `MAGICFORM`, `MAGICSURVEY` and `CSV` analyse `answers`, while most others, such as `GENERAL` and `CUSTOM`, analyse only `text`, and some accepted values are not analysed at all. Optional fields include `text`, `answers`, `metadata`, `metrics`, `crmContactId` and the source-system fields `external_id`, `externalGeneratedAt`, `externalUpdatedAt` and `externalUrl` — see [Feedback source-system fields](#feedback-source-system-fields). Keys are case-sensitive. A misspelled required key (e.g. `company_id` instead of `companyId`) makes the SDK raise `ValueError: Missing required field: companyId`; any other key the API does not accept is rejected with **422** and nothing is created — a misspelling such as `externalId`, or a server-set field such as `id`, `status` or `createdAt`. When `external_id` matches an existing, non-deleted feedback of the same company, product and integration, the API returns that feedback **unchanged** (HTTP 200, nothing written) instead of creating a duplicate.
+- `create(feedback)` — creates a feedback via `POST /feedbacks`. The dict becomes the JSON body with your keys unchanged, so every field is top-level (the SDK only wraps a scalar `value` into a list, see below, and adds a missing `companyId`/`productId`, see next). The SDK requires `name`, `type`, `identity` and `integrationId` (it raises `ValueError` before sending if one is missing). `companyId` and `productId` are optional (since 1.0.25): when one is missing or empty (`None` or `""`), `create()` copies it from the integration, which it reads once per `integrationId` (`GET /integrations/{id}`) and keeps for the life of the client (an integration without a company or product is read again on each call) — after moving an integration to another product, create a new client or pass `productId`. Non-empty values you pass are kept, and the copied values go into the request only, not into your dict. If you already send `productId`, keep sending the same value: `external_id` deduplication matches company, product and integration, so a different product makes re-sent feedbacks new ones. The API can fill them from the integration too, but when your user can't read it, it files the feedback under your user's own company with no product; reading the integration in the SDK makes that case an error instead. If the integration has no company, or has no product and you don't pass `productId`, or belongs to another company than the `companyId` you pass, `create()` raises `ValueError`; if the API refuses the read (**406** for an integration that doesn't exist, was deleted or deprecated, or your user can't see; **405** if your role can't read integrations), it raises `requests.HTTPError`. Nothing is created in either case, and passing both fields skips the lookup. Use the `identity` of the integration the feedback belongs to: survey identities such as `MAGICFORM`, `MAGICSURVEY` and `CSV` analyse `answers`, while most others, such as `GENERAL` and `CUSTOM`, analyse only `text`, and some accepted values are not analysed at all. Optional fields include `text`, `answers`, `metadata`, `metrics`, `crmContactId` and the source-system fields `external_id`, `externalGeneratedAt`, `externalUpdatedAt` and `externalUrl` — see [Feedback source-system fields](#feedback-source-system-fields). Keys are case-sensitive. A misspelled required key (e.g. `integration_id` instead of `integrationId`) makes the SDK raise `ValueError: Missing required field: integrationId`; any other key the API does not accept is rejected with **422** and nothing is created — a misspelling such as `company_id` or `externalId`, or a server-set field such as `id`, `status` or `createdAt`. When `external_id` matches an existing, non-deleted feedback of the same company, product and integration, the API returns that feedback **unchanged** (HTTP 200, nothing written) instead of creating a duplicate.
 - `get(filter=None)` — lists feedback items. To find the feedback an SDK session became, filter on the `sessionId` that `POST /sdk/feedback` returned: `get(filter={"where": {"sdkSessionId": session_id}, "order": ["createdAt DESC"]})`. Set only on feedbacks created after the field shipped. Since 2026-10-07 a session that closes again updates the feedback it already has, so a session normally maps to one feedback. A session can still have two (one that closed twice between 2026-09-30 and 2026-10-07, or whose first feedback was deleted), so keep the `order` and take the first result.
 - `get_id(feedback_id, filter=None)` — retrieves a specific feedback item.
 - `update(feedback_id, feedback)` — `PATCH /feedbacks/{id}` with only the fields you pass; returns `{}` (the API answers 204). `external_id`, `type`, `identity`, `integrationId`, `productId`, `profile` and `data` cannot be changed (422), so never PATCH back a whole object read from `get_id()`. The change is saved immediately, but charts and reports pick up changes to the date, `text`, `answers`, `metrics` or `metadata` only when the feedback is re-analysed: include `"status": "REGISTERED"` in the same call to queue a full re-analysis — read what that does at the end of [Feedback source-system fields](#feedback-source-system-fields) first. `update()` needs an API user whose role may update feedback (otherwise **405**).
@@ -156,7 +145,7 @@ is not currently normalized. (`profile` can only be sent with `create()`:
 
 When feedback comes from another system (a helpdesk, a review site, a CSV
 export...), send these optional fields with `create()`. They go at the top
-level, next to `integrationId` and `companyId`, not inside `answers` or
+level, next to `integrationId`, not inside `answers` or
 `metadata`:
 
 | Field | Meaning |
@@ -234,8 +223,8 @@ you need to re-analyse many feedbacks, talk to your Deepdots contact before you
 start.
 
 ### `client.contacts`
-- `create(contact)`, `get(filter=None)`, `update(contact_id, contact)`, `delete(contact_id)`
-- `upsert(contact)` — **create-or-update** a single contact, matched by `(companyId, email)`, via `POST /crm/contacts/upsert`. Prefer this over `create()` when the record may already exist: `create()` always inserts (there is no unique constraint on email, so it silently makes duplicates), whereas `upsert()` PATCHes the existing ACTIVE contact if one is found. On the update branch scalars are overwritten and `customFields` is **merged** (same additive semantics as `update_fields`); the match key is never rewritten. `name`, `email`, `companyId` are required. Returns the contact after the upsert.
+- `create(contact)`, `get(filter=None)`, `update(contact_id, contact)`, `delete(contact_id)`. When `create()` sends an `externalId` the company already has, whatever that contact's status, no contact is added: the API returns that contact updated with the fields you sent (`email` included, `customFields` merged) and brings it back to ACTIVE if it was deleted; an unsubscribed contact stays unsubscribed, and if your role can't update contacts it comes back unchanged. Without an `externalId`, `create()` always adds a contact, even for an email the company already has. This is a check before inserting, not a unique constraint: a company can still have several contacts with the same `externalId`.
+- `upsert(contact)` — **create-or-update** a single contact via `POST /crm/contacts/upsert`. Prefer this over `create()` when the record may already exist. It updates the company's ACTIVE contact with the same email; if there is none, the contact holding the `externalId` you send, which then takes your email and comes back to ACTIVE if it was deleted; otherwise it creates one. Only ACTIVE contacts are matched by email: an unsubscribed or deleted contact is found only through the `externalId` you send, and without it `upsert()` creates a new ACTIVE contact with the same email. On the update branch scalars are overwritten and `customFields` is **merged** (same additive semantics as `update_fields`); the key the contact was matched by (its email, or its `externalId`) is never rewritten. `name`, `email`, `companyId` are required. Returns the contact after the upsert.
 
   ```python
   client.contacts.upsert({
@@ -270,16 +259,15 @@ start.
 CRM objects are the records a company keeps next to its contacts (tickets,
 matches, memberships, ...). Each is stored as `(companyId, type, externalId)`
 plus a free-form `data` object, and survey answers can be linked to them
-through the survey link's URL parameters. The connectors take your own records
-**as they are** and do the mapping on our side.
+through the survey link's URL parameters.
 
-Every write method below sends 500 records per request (pass a list of any
-length, or one record as a dict) and returns totals over all requests, with
-each `failed` entry's `index` pointing into the list you passed. Failures are
-per record: a record the API cannot store is listed in `failed` and the others
-still land. A request must stay under the API's 1 MB body limit (500 typical
-FCK users or Roboticket lines are about 0.4 MB); for larger records pass a
-smaller `chunk_size`.
+`upsert_objects` sends 500 records per request (pass a list of any length, or
+one record as a dict) and returns totals over all requests, with each `failed`
+entry's `index` pointing into the list you passed. Failures are per record: a
+record the API cannot store is listed in `failed` and the others still land. A
+request must stay under the API's 1 MB body limit: at the default 500 records
+per request that is about 2 KB of JSON per record on average. For larger
+records pass a smaller `chunk_size`.
 
 Every request, reads included, is resent up to 3 times (after 2s, 4s, 8s) when
 it fails temporarily (502/503/504, a connection error, or no answer within 300
@@ -289,27 +277,12 @@ a request still fails after that, the call raises a
 or `Timeout` for the network); the requests before it have already been
 applied.
 
-Resending records never creates duplicates: they are matched by their own id.
-Whether an older copy can overwrite a newer one depends on the method:
-`ingest_roboticket` and `upsert_objects` items with `sourceUpdatedAt` keep the
-newest version, while `sync_fck_users` and `upsert_objects` items without
-`sourceUpdatedAt` store the last one sent. So after a failure, resend the same
-list right away, but never resend an older export of users after newer changes
-have been sent.
+Resending records never creates duplicates: they are matched by their
+`externalId`. Items with `sourceUpdatedAt` keep the newest version, while items
+without it store the last one sent. So after a failure, resend the same list
+right away, but never resend an older export after newer changes have been
+sent.
 
-- `sync_fck_users(users, company_id=None, chunk_size=500)` — create-or-update
-  contacts from FCK user objects via `POST /crm/connectors/fck/users`. Matched
-  by `roboticket_id`, then by email, so the first load and later changes are
-  the same call. The last version sent wins. Returns `{"count", "created", "updated",
-  "failed"}`; a `failed` entry is `{"index", "id", "error"}` (e.g. a user
-  without a valid email).
-- `ingest_roboticket(lines, company_id=None, chunk_size=500)` — store
-  Roboticket ticket and membership lines via
-  `POST /crm/connectors/roboticket/ingest`. Each line updates its ticket or
-  membership and the match or product it belongs to; returns and transfers are
-  handled, a cancelled ticket stays cancelled, and the `AccessToken` field is
-  dropped. Returns `{"count", "applied", "ignored", "failed"}`: `ignored` lines
-  are neither a sale nor a return.
 - `upsert_objects(object_type, items, company_id=None, chunk_size=500)` —
   create-or-update objects of one type via `POST
   /crm/objects/{type}/upsert/batch`, matched by `externalId` (required). Other
@@ -334,13 +307,13 @@ from deepdots_sdk import Deepdots
 client = Deepdots("api-user@example.com", "password",
                   auth_source="identity", base_url="https://api.deepdots.com")
 
-result = client.crm.sync_fck_users(users)        # users: list of user dicts
+result = client.crm.upsert_objects("match", [
+    {"externalId": "1001", "startsAt": "2026-11-15T16:00:00Z",
+     "data": {"name": "Northside - Riverside"}},
+])
 print(result["created"], result["updated"], result["failed"])
 
-result = client.crm.ingest_roboticket(lines)     # lines: list of Roboticket lines
-print(result["applied"], result["ignored"], result["failed"])
-
-tickets = client.crm.get_objects("ticket", contact_key="1058531")
+tickets = client.crm.get_objects("ticket", contact_key="C-1001")
 ```
 
 ### `client.campaigns`
@@ -370,7 +343,7 @@ To mark a request DONE/ERROR asynchronously, publish a completion event to the
 `request-done`); the `request-done` Cloud Function consumes it and PATCHes the
 request. The SDK does not publish this itself — build the envelope with
 `build_done_message` and publish it directly. See
-[`examples/mark_request_done.py`](examples/mark_request_done.py).
+[`examples/mark_request_done.py`](https://github.com/MagicFeedback/magicfeedback_python_sdk/blob/main/examples/mark_request_done.py).
 
 ## Examples
 
@@ -380,9 +353,7 @@ client.feedbacks.create({
     "name": "Test Feedback",
     "type": "APP",
     "identity": "MAGICFORM",
-    "integrationId": "your-integration-id",
-    "companyId": "YOUR_COMPANY",
-    "productId": "YOUR_PRODUCT",
+    "integrationId": "your-integration-id",  # companyId and productId are taken from it
     "answers": [
         {"key": "score", "value": "4"},
         {"key": "comment", "value": "Great service!"},
@@ -446,7 +417,7 @@ MIT
 ## Contributing
 
 Developing on the SDK itself — layout, tests, and how to cut a release — is
-documented in [DEVELOPERS.md](DEVELOPERS.md).
+documented in [DEVELOPERS.md](https://github.com/MagicFeedback/magicfeedback_python_sdk/blob/main/DEVELOPERS.md).
 
 ## Contact
 
