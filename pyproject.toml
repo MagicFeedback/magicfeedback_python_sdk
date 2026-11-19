@@ -1,6 +1,6 @@
 [project]
 name = "magicfeedback"
-version = "1.0.25"
+version = "1.0.26"
 authors = [
   { name="Francisco Arias", email="farias@magicfeedback.io" },
 ]

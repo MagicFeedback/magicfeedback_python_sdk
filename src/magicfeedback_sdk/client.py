@@ -3,6 +3,7 @@ import warnings
 from magicfeedback_sdk.api.campaigns import CampaignsAPI
 from magicfeedback_sdk.api.contacts import ContactsAPI
 from magicfeedback_sdk.api.crm import CrmAPI
+from magicfeedback_sdk.api.dashboards import DashboardsAPI
 from magicfeedback_sdk.api.feedback import FeedbackAPI
 from magicfeedback_sdk.api.integrations_questions import IntegrationsQuestionsAPI
 from magicfeedback_sdk.api.metrics import MetricsAPI
@@ -112,6 +113,7 @@ class MagicFeedback:
         self.companies = CompaniesAPI(self.base_url, self.headers, self.logger)
         self.requests = RequestsAPI(self.base_url, self.headers, self.logger)
         self.signals = SignalsAPI(self.base_url, self.headers, self.logger)
+        self.dashboards = DashboardsAPI(self.base_url, self.headers, self.logger)
 
     def set_logging(self, level):
         self.logger.setLevel(level)
